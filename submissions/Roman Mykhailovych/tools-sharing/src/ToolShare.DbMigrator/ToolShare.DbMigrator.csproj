@@ -1,0 +1,61 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\..\common.props" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="appsettings.json" />
+    <Content Include="appsettings.json">
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <None Remove="appsettings.secrets.json" />
+    <Content Include="appsettings.secrets.json">
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>    
+    <PackageReference Include="Serilog.Extensions.Logging" Version="9.0.2" />
+    <PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.7" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Volo.Abp.Autofac" Version="10.6.0" />
+    <ProjectReference Include="..\ToolShare.Application\ToolShare.Application.csproj" />
+    <ProjectReference Include="..\ToolShare.EntityFrameworkCore\ToolShare.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\ToolShare.Catalog.Application\ToolShare.Catalog.Application.csproj" />
+    <ProjectReference Include="..\ToolShare.Catalog.EntityFrameworkCore\ToolShare.Catalog.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\ToolShare.Membership.Application\ToolShare.Membership.Application.csproj" />
+    <ProjectReference Include="..\ToolShare.Membership.EntityFrameworkCore\ToolShare.Membership.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\ToolShare.Lending.Application\ToolShare.Lending.Application.csproj" />
+    <ProjectReference Include="..\ToolShare.Lending.EntityFrameworkCore\ToolShare.Lending.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\ToolShare.Notifications.Application\ToolShare.Notifications.Application.csproj" />
+    <ProjectReference Include="..\ToolShare.Notifications.EntityFrameworkCore\ToolShare.Notifications.EntityFrameworkCore.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Required so `dotnet ef` design-time tooling works with this as the startup project (EF's PrivateAssets on the Tools package in ToolShare.EntityFrameworkCore does not flow transitively). -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.7">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Logs\**" />
+    <Content Remove="Logs\**" />
+    <EmbeddedResource Remove="Logs\**" />
+    <None Remove="Logs\**" />
+  </ItemGroup>
+
+</Project>

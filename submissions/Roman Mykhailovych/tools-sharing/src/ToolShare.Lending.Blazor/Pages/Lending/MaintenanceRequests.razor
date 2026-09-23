@@ -1,0 +1,75 @@
+@page "/lending/maintenance"
+@attribute [Authorize(LendingPermissions.Loans.Default)]
+@using ToolShare.Lending.Maintenance
+@using ToolShare.Lending.Permissions
+@inherits LendingComponentBase
+@inject IMaintenanceRequestAppService MaintenanceRequestAppService
+
+<MudText Typo="Typo.h4" Class="mb-4">@L["Menu:Lending.MaintenanceRequests"]</MudText>
+
+<MudTable Items="_requests" Hover="true" Dense="true">
+    <HeaderContent>
+        <MudTh>Instance</MudTh>
+        <MudTh>Opened</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Instance">@context.ToolInstanceId</MudTd>
+        <MudTd DataLabel="Opened">@context.OpenedAt.ToLocalTime()</MudTd>
+        <MudTd DataLabel="">
+            <AuthorizeView Policy="@LendingPermissions.Maintenance.Close" Context="closeAuthState">
+                <MudButton Size="Size.Small" Color="Color.Primary" OnClick="() => OpenCloseDialog(context.Id)">Close</MudButton>
+            </AuthorizeView>
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText Align="Align.Center" Class="pa-4">No open maintenance requests.</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+<MudDialog @bind-Visible="_closeDialogOpen">
+    <TitleContent>Close maintenance request</TitleContent>
+    <DialogContent>
+        <MudNumericField T="decimal" Label="Cost" @bind-Value="_cost" Min="0m" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => _closeDialogOpen = false">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="CloseAsync">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<MaintenanceRequestDto> _requests = new();
+    private bool _closeDialogOpen;
+    private Guid _targetRequestId;
+    private decimal _cost;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        var result = await MaintenanceRequestAppService.GetOpenListAsync();
+        _requests = result.Items.ToList();
+    }
+
+    private void OpenCloseDialog(Guid requestId)
+    {
+        _targetRequestId = requestId;
+        _cost = 0m;
+        _closeDialogOpen = true;
+    }
+
+    private async Task CloseAsync()
+    {
+        var ok = await TryRunAsync(() => MaintenanceRequestAppService.CloseAsync(_targetRequestId, new CloseMaintenanceRequestDto { Cost = _cost }));
+
+        if (ok)
+        {
+            _closeDialogOpen = false;
+            await ReloadAsync();
+        }
+    }
+}

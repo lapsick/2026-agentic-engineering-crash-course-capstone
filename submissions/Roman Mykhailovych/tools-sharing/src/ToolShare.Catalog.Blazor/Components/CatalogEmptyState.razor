@@ -1,0 +1,24 @@
+@inherits CatalogComponentBase
+
+<MudStack AlignItems="AlignItems.Center" Class="pa-8" Spacing="2">
+    <MudIcon Icon="@Icon" Size="Size.Large" Color="Color.Default" />
+    <MudText Typo="Typo.body1" Align="Align.Center">@Text</MudText>
+    @if (!string.IsNullOrWhiteSpace(ActionText) && OnAction.HasDelegate)
+    {
+        <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="OnAction">@ActionText</MudButton>
+    }
+</MudStack>
+
+@code {
+    [Parameter]
+    public string Text { get; set; } = default!;
+
+    [Parameter]
+    public string Icon { get; set; } = Icons.Material.Filled.Inbox;
+
+    [Parameter]
+    public string? ActionText { get; set; }
+
+    [Parameter]
+    public EventCallback OnAction { get; set; }
+}

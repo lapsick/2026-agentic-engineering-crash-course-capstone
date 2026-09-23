@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\..\common.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <RootNamespace>ToolShare.Catalog</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ToolShare.Catalog.Application\ToolShare.Catalog.Application.csproj" />
+    <ProjectReference Include="..\..\src\ToolShare.Catalog.EntityFrameworkCore\ToolShare.Catalog.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\..\src\ToolShare.Application\ToolShare.Application.csproj" />
+    <ProjectReference Include="..\..\src\ToolShare.EntityFrameworkCore\ToolShare.EntityFrameworkCore.csproj" />
+    <!-- 003 ripple (research R10, T063): the enrolment gate is registered by
+         MembershipApplicationModule and applies to every application-service
+         call app-wide, including Catalog's — so Catalog's own test module needs
+         these to seed member records for its test principals and to migrate the
+         "membership" schema into the shared per-test database. -->
+    <ProjectReference Include="..\..\src\ToolShare.Membership.Application\ToolShare.Membership.Application.csproj" />
+    <ProjectReference Include="..\..\src\ToolShare.Membership.EntityFrameworkCore\ToolShare.Membership.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\ToolShare.TestBase\ToolShare.TestBase.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="Volo.Abp.TestBase" Version="10.6.0" />
+    <PackageReference Include="Volo.Abp.Autofac" Version="10.6.0" />
+    <PackageReference Include="Volo.Abp.Authorization" Version="10.6.0" />
+    <PackageReference Include="Volo.Abp.EventBus" Version="10.6.0" />
+  </ItemGroup>
+
+</Project>

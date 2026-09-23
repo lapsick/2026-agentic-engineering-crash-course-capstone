@@ -1,0 +1,92 @@
+using System;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using ToolShare.Membership.Members;
+using Volo.Abp.Security.Claims;
+
+namespace ToolShare.Membership.Blazor.Security;
+
+public class MembershipActiveMemberRequirement : IAuthorizationRequirement
+{
+}
+
+/// <summary>
+/// UI affordance half of the enrolment gate (research R3): added to the Blazor
+/// router's fallback policy alongside
+/// <c>RequireAuthenticationExceptKnownAnonymousPathsRequirement</c> so an
+/// authenticated-but-not-enrolled (or deactivated) visitor is redirected to the
+/// explanatory page instead of hitting a raw <see cref="Volo.Abp.Authorization.AbpAuthorizationException"/>
+/// dialog. This is <b>not</b> the authoritative check — that is
+/// <c>MembershipMethodInvocationAuthorizationService</c>, which covers every
+/// application-service call regardless of whether a Blazor route was even
+/// involved. This handler only governs page navigation.
+/// </summary>
+public class MembershipActiveMemberRequirementHandler : AuthorizationHandler<MembershipActiveMemberRequirement>
+{
+    /// <summary>
+    /// Paths that must stay reachable even for an authenticated non-member — the
+    /// same anonymous-infrastructure allowlist
+    /// <c>RequireAuthenticationExceptKnownAnonymousPathsHandler</c> uses, plus the
+    /// explanatory page itself, so the redirect target can never loop.
+    /// </summary>
+    private static readonly string[] ExemptPathPrefixes =
+    {
+        "/Account",
+        "/swagger",
+        "/connect",
+        "/.well-known",
+        "/_blazor",
+        "/_framework",
+        "/_content",
+        "/_vs",
+        "/Abp",
+        "/Membership/NotEnrolled"
+    };
+
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IMemberStandingProvider _memberStandingProvider;
+
+    public MembershipActiveMemberRequirementHandler(IHttpContextAccessor httpContextAccessor, IMemberStandingProvider memberStandingProvider)
+    {
+        _httpContextAccessor = httpContextAccessor;
+        _memberStandingProvider = memberStandingProvider;
+    }
+
+    protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, MembershipActiveMemberRequirement requirement)
+    {
+        if (context.User.Identity?.IsAuthenticated != true)
+        {
+            // Not this handler's concern — RequireAuthenticationExceptKnownAnonymousPathsRequirement
+            // governs unauthenticated visitors; failing here too would just
+            // produce a confusing double-denial on the same navigation.
+            context.Succeed(requirement);
+            return;
+        }
+
+        var path = _httpContextAccessor.HttpContext?.Request.Path.Value;
+        if (path != null && ExemptPathPrefixes.Any(prefix => path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
+        {
+            context.Succeed(requirement);
+            return;
+        }
+
+        var userIdClaim = context.User.FindFirst(AbpClaimTypes.UserId)?.Value;
+        if (userIdClaim is null || !Guid.TryParse(userIdClaim, out var identityUserId))
+        {
+            context.Succeed(requirement);
+            return;
+        }
+
+        var standing = await _memberStandingProvider.GetByIdentityUserIdAsync(identityUserId);
+        if (standing is { IsActive: true })
+        {
+            context.Succeed(requirement);
+        }
+
+        // Otherwise: neither Succeed nor Fail — leaves the requirement
+        // unsatisfied, which denies the request the same way the existing
+        // handler does for an unrecognized anonymous path.
+    }
+}

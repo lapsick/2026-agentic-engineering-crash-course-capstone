@@ -1,0 +1,16 @@
+{
+  "folders": {
+    "items": {
+      "ToolShare": {}
+    }
+  },
+  "applications": {
+    "ToolShare.Blazor": {
+      "type": "dotnet-project",
+      "path": "../../../src/ToolShare.Blazor/ToolShare.Blazor.csproj",
+      "launchUrl": "https://localhost:44376/",
+      "folder": "ToolShare",
+      "runnable": true
+    }
+  }
+}

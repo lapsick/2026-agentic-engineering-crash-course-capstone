@@ -1,0 +1,136 @@
+{
+  "packages": {
+    "ToolShare.Application.Contracts": {
+      "path": "src/ToolShare.Application.Contracts/ToolShare.Application.Contracts.abppkg"
+    },
+    "ToolShare.Application": {
+      "path": "src/ToolShare.Application/ToolShare.Application.abppkg"
+    },
+    "ToolShare.Blazor": {
+      "path": "src/ToolShare.Blazor/ToolShare.Blazor.abppkg"
+    },
+    "ToolShare.Catalog.Application.Contracts": {
+      "path": "src/ToolShare.Catalog.Application.Contracts/ToolShare.Catalog.Application.Contracts.abppkg"
+    },
+    "ToolShare.Catalog.Application": {
+      "path": "src/ToolShare.Catalog.Application/ToolShare.Catalog.Application.abppkg"
+    },
+    "ToolShare.Catalog.Blazor": {
+      "path": "src/ToolShare.Catalog.Blazor/ToolShare.Catalog.Blazor.abppkg"
+    },
+    "ToolShare.Catalog.Domain.Shared": {
+      "path": "src/ToolShare.Catalog.Domain.Shared/ToolShare.Catalog.Domain.Shared.abppkg"
+    },
+    "ToolShare.Catalog.Domain": {
+      "path": "src/ToolShare.Catalog.Domain/ToolShare.Catalog.Domain.abppkg"
+    },
+    "ToolShare.Catalog.EntityFrameworkCore": {
+      "path": "src/ToolShare.Catalog.EntityFrameworkCore/ToolShare.Catalog.EntityFrameworkCore.abppkg"
+    },
+    "ToolShare.DbMigrator": {
+      "path": "src/ToolShare.DbMigrator/ToolShare.DbMigrator.abppkg"
+    },
+    "ToolShare.Domain.Shared": {
+      "path": "src/ToolShare.Domain.Shared/ToolShare.Domain.Shared.abppkg"
+    },
+    "ToolShare.Domain": {
+      "path": "src/ToolShare.Domain/ToolShare.Domain.abppkg"
+    },
+    "ToolShare.EntityFrameworkCore": {
+      "path": "src/ToolShare.EntityFrameworkCore/ToolShare.EntityFrameworkCore.abppkg"
+    },
+    "ToolShare.HttpApi": {
+      "path": "src/ToolShare.HttpApi/ToolShare.HttpApi.abppkg"
+    },
+    "ToolShare.Lending.Application.Contracts": {
+      "path": "src/ToolShare.Lending.Application.Contracts/ToolShare.Lending.Application.Contracts.abppkg"
+    },
+    "ToolShare.Lending.Application": {
+      "path": "src/ToolShare.Lending.Application/ToolShare.Lending.Application.abppkg"
+    },
+    "ToolShare.Lending.Blazor": {
+      "path": "src/ToolShare.Lending.Blazor/ToolShare.Lending.Blazor.abppkg"
+    },
+    "ToolShare.Lending.Domain.Shared": {
+      "path": "src/ToolShare.Lending.Domain.Shared/ToolShare.Lending.Domain.Shared.abppkg"
+    },
+    "ToolShare.Lending.Domain": {
+      "path": "src/ToolShare.Lending.Domain/ToolShare.Lending.Domain.abppkg"
+    },
+    "ToolShare.Lending.EntityFrameworkCore": {
+      "path": "src/ToolShare.Lending.EntityFrameworkCore/ToolShare.Lending.EntityFrameworkCore.abppkg"
+    },
+    "ToolShare.Membership.Application.Contracts": {
+      "path": "src/ToolShare.Membership.Application.Contracts/ToolShare.Membership.Application.Contracts.abppkg"
+    },
+    "ToolShare.Membership.Application": {
+      "path": "src/ToolShare.Membership.Application/ToolShare.Membership.Application.abppkg"
+    },
+    "ToolShare.Membership.Blazor": {
+      "path": "src/ToolShare.Membership.Blazor/ToolShare.Membership.Blazor.abppkg"
+    },
+    "ToolShare.Membership.Domain.Shared": {
+      "path": "src/ToolShare.Membership.Domain.Shared/ToolShare.Membership.Domain.Shared.abppkg"
+    },
+    "ToolShare.Membership.Domain": {
+      "path": "src/ToolShare.Membership.Domain/ToolShare.Membership.Domain.abppkg"
+    },
+    "ToolShare.Membership.EntityFrameworkCore": {
+      "path": "src/ToolShare.Membership.EntityFrameworkCore/ToolShare.Membership.EntityFrameworkCore.abppkg"
+    },
+    "ToolShare.Notifications.Application.Contracts": {
+      "path": "src/ToolShare.Notifications.Application.Contracts/ToolShare.Notifications.Application.Contracts.abppkg"
+    },
+    "ToolShare.Notifications.Application": {
+      "path": "src/ToolShare.Notifications.Application/ToolShare.Notifications.Application.abppkg"
+    },
+    "ToolShare.Notifications.Blazor": {
+      "path": "src/ToolShare.Notifications.Blazor/ToolShare.Notifications.Blazor.abppkg"
+    },
+    "ToolShare.Notifications.Domain.Shared": {
+      "path": "src/ToolShare.Notifications.Domain.Shared/ToolShare.Notifications.Domain.Shared.abppkg"
+    },
+    "ToolShare.Notifications.Domain": {
+      "path": "src/ToolShare.Notifications.Domain/ToolShare.Notifications.Domain.abppkg"
+    },
+    "ToolShare.Notifications.EntityFrameworkCore": {
+      "path": "src/ToolShare.Notifications.EntityFrameworkCore/ToolShare.Notifications.EntityFrameworkCore.abppkg"
+    },
+    "ToolShare.Application.Tests": {
+      "path": "test/ToolShare.Application.Tests/ToolShare.Application.Tests.abppkg"
+    },
+    "ToolShare.Catalog.Application.Tests": {
+      "path": "test/ToolShare.Catalog.Application.Tests/ToolShare.Catalog.Application.Tests.abppkg"
+    },
+    "ToolShare.Catalog.Domain.Tests": {
+      "path": "test/ToolShare.Catalog.Domain.Tests/ToolShare.Catalog.Domain.Tests.abppkg"
+    },
+    "ToolShare.Domain.Tests": {
+      "path": "test/ToolShare.Domain.Tests/ToolShare.Domain.Tests.abppkg"
+    },
+    "ToolShare.EntityFrameworkCore.Tests": {
+      "path": "test/ToolShare.EntityFrameworkCore.Tests/ToolShare.EntityFrameworkCore.Tests.abppkg"
+    },
+    "ToolShare.Lending.Application.Tests": {
+      "path": "test/ToolShare.Lending.Application.Tests/ToolShare.Lending.Application.Tests.abppkg"
+    },
+    "ToolShare.Lending.Domain.Tests": {
+      "path": "test/ToolShare.Lending.Domain.Tests/ToolShare.Lending.Domain.Tests.abppkg"
+    },
+    "ToolShare.Membership.Application.Tests": {
+      "path": "test/ToolShare.Membership.Application.Tests/ToolShare.Membership.Application.Tests.abppkg"
+    },
+    "ToolShare.Membership.Domain.Tests": {
+      "path": "test/ToolShare.Membership.Domain.Tests/ToolShare.Membership.Domain.Tests.abppkg"
+    },
+    "ToolShare.Notifications.Application.Tests": {
+      "path": "test/ToolShare.Notifications.Application.Tests/ToolShare.Notifications.Application.Tests.abppkg"
+    },
+    "ToolShare.Notifications.Domain.Tests": {
+      "path": "test/ToolShare.Notifications.Domain.Tests/ToolShare.Notifications.Domain.Tests.abppkg"
+    },
+    "ToolShare.TestBase": {
+      "path": "test/ToolShare.TestBase/ToolShare.TestBase.abppkg"
+    }
+  }
+}

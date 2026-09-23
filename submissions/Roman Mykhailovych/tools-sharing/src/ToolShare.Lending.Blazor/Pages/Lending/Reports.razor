@@ -1,0 +1,174 @@
+@page "/lending/reports"
+@attribute [Authorize(LendingPermissions.Reports.Default)]
+@using ToolShare.Lending.Permissions
+@using ToolShare.Lending.Reports
+@inherits LendingComponentBase
+@inject IReportAppService ReportAppService
+
+<MudText Typo="Typo.h4" Class="mb-4">@L["Menu:Lending.Reports"]</MudText>
+
+@* Each report adds its own MudTabPanel in its own task, so shipping one report
+   shows one tab rather than one tab plus permanently blank ones. *@
+<MudTabs Elevation="1" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+
+    <MudTabPanel Text="Overdue loans">
+        <MudText Typo="Typo.body2" Class="mb-3">
+            Loans past their planned return date and not yet returned, most overdue first.
+            Computed at the moment you open this page.
+        </MudText>
+
+        <MudTable Items="_overdueLoans" Hover="true" Dense="true">
+            <HeaderContent>
+                <MudTh>Member</MudTh>
+                <MudTh>Tool</MudTh>
+                <MudTh>Serial</MudTh>
+                <MudTh>Checked out</MudTh>
+                <MudTh>Planned return</MudTh>
+                <MudTh>Days overdue</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                @* A null name means the record could not be resolved; the raw
+                   id is shown rather than the row being dropped. *@
+                <MudTd DataLabel="Member">@(context.MemberDisplayName ?? context.MemberId.ToString())</MudTd>
+                <MudTd DataLabel="Tool">@(context.ToolName ?? context.ToolInstanceId.ToString())</MudTd>
+                <MudTd DataLabel="Serial">@(context.SerialNumber ?? "—")</MudTd>
+                <MudTd DataLabel="Checked out">@context.CheckedOutAt.ToLocalTime()</MudTd>
+                <MudTd DataLabel="Planned return">@context.PlannedReturnDate</MudTd>
+                <MudTd DataLabel="Days overdue">@context.DaysOverdue</MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Align="Align.Center" Class="pa-4">No loans are currently overdue.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </MudTabPanel>
+
+    <MudTabPanel Text="Most-borrowed tools">
+        <MudText Typo="Typo.body2" Class="mb-3">
+            Tools ranked by number of loans. Leave both dates empty for all-time history.
+        </MudText>
+
+        <MudGrid Class="mb-3">
+            <MudItem xs="12" sm="4">
+                <MudDatePicker Label="From (optional)" @bind-Date="_popularityFrom" Clearable="true" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudDatePicker Label="To (optional)" @bind-Date="_popularityTo" Clearable="true" />
+            </MudItem>
+            <MudItem xs="12" sm="4" Class="d-flex align-end">
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="LoadPopularityAsync">Run report</MudButton>
+            </MudItem>
+        </MudGrid>
+
+        <MudTable Items="_popularity" Hover="true" Dense="true">
+            <HeaderContent>
+                <MudTh>Tool</MudTh>
+                <MudTh>Loans</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Tool">@(context.ToolName ?? context.ToolId.ToString())</MudTd>
+                <MudTd DataLabel="Loans">@context.LoanCount</MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Align="Align.Center" Class="pa-4">No loans in the selected period.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </MudTabPanel>
+
+    <MudTabPanel Text="Maintenance cost">
+        <MudText Typo="Typo.body2" Class="mb-3">
+            Total cost of maintenance requests <strong>closed</strong> within the period. Both dates are
+            required. Requests still open contribute nothing — no final cost has been recorded for them.
+        </MudText>
+
+        <MudGrid Class="mb-3">
+            <MudItem xs="12" sm="4">
+                <MudDatePicker Label="From" @bind-Date="_maintenanceFrom" Required="true" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudDatePicker Label="To" @bind-Date="_maintenanceTo" Required="true" />
+            </MudItem>
+            <MudItem xs="12" sm="4" Class="d-flex align-end">
+                <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                           Disabled="@(_maintenanceFrom is null || _maintenanceTo is null)"
+                           OnClick="LoadMaintenanceCostAsync">Run report</MudButton>
+            </MudItem>
+        </MudGrid>
+
+        @if (_maintenanceCost is null)
+        {
+            <MudText Class="pa-4">Select a period to see its maintenance cost.</MudText>
+        }
+        else
+        {
+            <MudPaper Class="pa-4" Elevation="0">
+                <MudText Typo="Typo.body2">
+                    @_maintenanceCost.From.ToString("d") – @_maintenanceCost.To.ToString("d")
+                </MudText>
+                <MudText Typo="Typo.h4" Class="mt-2">@_maintenanceCost.TotalCost.ToString("C")</MudText>
+                @* Zero reads as a result, not an error — the count is what
+                   distinguishes "nothing closed" from "everything cost zero". *@
+                <MudText Typo="Typo.body1" Class="mt-1">
+                    @(_maintenanceCost.ClosedRequestCount == 1
+                        ? "1 maintenance request closed in this period."
+                        : $"{_maintenanceCost.ClosedRequestCount} maintenance requests closed in this period.")
+                </MudText>
+            </MudPaper>
+        }
+    </MudTabPanel>
+
+</MudTabs>
+
+@code {
+    private List<OverdueLoanReportItemDto> _overdueLoans = new();
+
+    private List<ToolPopularityReportItemDto> _popularity = new();
+    private DateTime? _popularityFrom;
+    private DateTime? _popularityTo;
+
+    private MaintenanceCostReportDto? _maintenanceCost;
+    private DateTime? _maintenanceFrom = DateTime.Today.AddMonths(-1);
+    private DateTime? _maintenanceTo = DateTime.Today;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadOverdueAsync();
+        await LoadPopularityAsync();
+    }
+
+    private async Task LoadOverdueAsync()
+    {
+        var result = await ReportAppService.GetOverdueLoansAsync();
+        _overdueLoans = result.Items.ToList();
+    }
+
+    private async Task LoadPopularityAsync()
+    {
+        await TryRunAsync(async () =>
+        {
+            var result = await ReportAppService.GetToolPopularityAsync(new ToolPopularityReportInput
+            {
+                From = ToDateOnly(_popularityFrom),
+                To = ToDateOnly(_popularityTo)
+            });
+
+            _popularity = result.Items.ToList();
+        });
+    }
+
+    private async Task LoadMaintenanceCostAsync()
+    {
+        await TryRunAsync(async () =>
+        {
+            _maintenanceCost = await ReportAppService.GetMaintenanceCostAsync(new MaintenanceCostReportInput
+            {
+                From = ToDateOnly(_maintenanceFrom),
+                To = ToDateOnly(_maintenanceTo)
+            });
+        });
+    }
+
+    private static DateOnly? ToDateOnly(DateTime? value)
+    {
+        return value.HasValue ? DateOnly.FromDateTime(value.Value) : null;
+    }
+}

@@ -1,0 +1,33 @@
+@page "/membership/my-membership"
+@attribute [Authorize]
+@using ToolShare.Membership.Members
+@inherits MembershipComponentBase
+@inject IMyMembershipAppService MyMembershipAppService
+
+<MudText Typo="Typo.h4" Class="mb-4">@L["Menu:Membership.MyMembership"]</MudText>
+
+@if (_myMembership is not null)
+{
+    <MudPaper Class="pa-4 mb-4">
+        <MudGrid>
+            <MudItem xs="12" sm="3"><MudText Typo="Typo.caption">Status</MudText><MudText>@_myMembership.Status</MudText></MudItem>
+            <MudItem xs="12" sm="3"><MudText Typo="Typo.caption">Role</MudText><MudText>@_myMembership.Role</MudText></MudItem>
+            <MudItem xs="12" sm="3"><MudText Typo="Typo.caption">Rating</MudText><MudText>@_myMembership.CurrentRating</MudText></MudItem>
+            <MudItem xs="12" sm="3"><MudText Typo="Typo.caption">Concurrent loan limit</MudText><MudText>@_myMembership.EffectiveConcurrentLoanLimit</MudText></MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <MudText Typo="Typo.h6" Class="mb-2">Standing history</MudText>
+    <StandingTimeline Entries="_history" />
+}
+
+@code {
+    private MyMembershipDto? _myMembership;
+    private IReadOnlyList<MemberStandingChangeDto> _history = Array.Empty<MemberStandingChangeDto>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _myMembership = await MyMembershipAppService.GetAsync();
+        _history = await MyMembershipAppService.GetStandingHistoryAsync();
+    }
+}

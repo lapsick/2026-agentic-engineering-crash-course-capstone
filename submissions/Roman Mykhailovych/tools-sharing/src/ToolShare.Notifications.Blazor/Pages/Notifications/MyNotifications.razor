@@ -1,0 +1,80 @@
+@page "/notifications/my"
+@attribute [Authorize]
+@inherits NotificationsComponentBase
+@implements IDisposable
+@inject IMyNotificationsAppService MyNotificationsAppService
+@inject IMemberNotificationBroadcaster Broadcaster
+
+<div class="d-flex align-center justify-space-between mb-4">
+    <MudText Typo="Typo.h4">@L["Menu:Notifications.MyNotifications"]</MudText>
+    <MudButton Variant="Variant.Text" Disabled="@(_unreadCount == 0)" OnClick="MarkAllReadAsync">Mark all read</MudButton>
+</div>
+
+<MudTable Items="_notifications" Hover="true" Dense="true">
+    <HeaderContent>
+        <MudTh></MudTh>
+        <MudTh>When</MudTh>
+        <MudTh>Notification</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="" Class="@(context.ReadAt is null ? "mud-typography-body1" : "mud-text-secondary")">
+            @if (context.ReadAt is null)
+            {
+                <MudBadge Color="Color.Primary" Dot="true" />
+            }
+        </MudTd>
+        <MudTd DataLabel="When">@context.CreatedAt.ToLocalTime()</MudTd>
+        <MudTd DataLabel="Notification" Class="@(context.ReadAt is null ? "" : "mud-text-secondary")">@context.DisplayText</MudTd>
+        <MudTd DataLabel="">
+            @if (context.ReadAt is null)
+            {
+                <MudButton Size="Size.Small" OnClick="() => MarkReadAsync(context.Id)">Mark read</MudButton>
+            }
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText Align="Align.Center" Class="pa-4">No notifications yet.</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    private List<NotificationDto> _notifications = new();
+    private int _unreadCount;
+    private IDisposable? _subscription;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // US1/FR-001: subscribe to the member-keyed real-time signal, then re-query on each signal.
+        // Subscribing before the initial load means a notification arriving during startup is still
+        // caught; the signal is contentless, so the list/count always come from the authoritative
+        // app service (FR-003/FR-004). Re-querying on (re-)initialization is also what reconciles a
+        // rebuilt circuit to the persisted truth after a reconnect (FR-005).
+        var memberId = await MyNotificationsAppService.GetMyMemberIdAsync();
+        _subscription = Broadcaster.Subscribe(memberId, () => InvokeAsync(async () =>
+        {
+            await ReloadAsync();
+            StateHasChanged();
+        }));
+
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        var result = await MyNotificationsAppService.GetListAsync(new GetMyNotificationsInput());
+        _notifications = result.Items.ToList();
+        _unreadCount = await MyNotificationsAppService.GetUnreadCountAsync();
+    }
+
+    // Mark-read raises the broadcaster signal (FR-008); this page is subscribed, so the resulting
+    // signal drives the single reload. No explicit ReloadAsync here — that would re-query twice.
+    private Task MarkReadAsync(Guid id) => MyNotificationsAppService.MarkReadAsync(id);
+
+    private Task MarkAllReadAsync() => MyNotificationsAppService.MarkAllReadAsync();
+
+    public void Dispose()
+    {
+        _subscription?.Dispose();
+    }
+}

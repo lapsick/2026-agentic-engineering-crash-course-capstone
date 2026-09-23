@@ -1,0 +1,11 @@
+@page "/membership/not-enrolled"
+@attribute [AllowAnonymous]
+@inherits MembershipComponentBase
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
+    <MudPaper Class="pa-8 text-center" Elevation="2">
+        <MudIcon Icon="@Icons.Material.Filled.PersonOff" Size="Size.Large" Color="Color.Warning" Class="mb-4" />
+        <MudText Typo="Typo.h5" Class="mb-2">@L["Membership:NotEnrolled:Title"]</MudText>
+        <MudText Typo="Typo.body1">@L["Membership:NotEnrolled:Message"]</MudText>
+    </MudPaper>
+</MudContainer>

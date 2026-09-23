@@ -1,0 +1,288 @@
+@page "/catalog/tools/{ToolId:guid}"
+@inherits CatalogComponentBase
+@inject IToolAppService ToolAppService
+@inject IToolInstanceAppService ToolInstanceAppService
+@inject NavigationManager NavigationManager
+
+@if (_tool is not null)
+{
+    <MudText Typo="Typo.h4">@_tool.Name</MudText>
+    <MudText Typo="Typo.body2" Class="mb-2">@_tool.CategoryName</MudText>
+    @if (!string.IsNullOrWhiteSpace(_tool.Description))
+    {
+        <MudText Class="mb-4">@_tool.Description</MudText>
+    }
+
+    <MudButtonGroup Class="mb-4">
+        <AuthorizeView Policy="@CatalogPermissions.Tools.Edit">
+            <MudButton StartIcon="@Icons.Material.Filled.Edit" OnClick="() => _editToolOpen = true">Edit tool</MudButton>
+        </AuthorizeView>
+        <AuthorizeView Policy="@CatalogPermissions.ToolInstances.Create">
+            <MudButton StartIcon="@Icons.Material.Filled.Add" OnClick="OpenRegisterDialog">Register instance</MudButton>
+        </AuthorizeView>
+    </MudButtonGroup>
+
+    <MudCheckBox T="bool" Value="_showRetired" ValueChanged="OnShowRetiredChanged" Label="@L["Catalog:ShowRetired"]" Class="mb-2" />
+
+    <MudTable Items="_tool.Instances" Hover="true" Dense="true">
+        <HeaderContent>
+            <MudTh></MudTh>
+            <MudTh>Serial number</MudTh>
+            <MudTh>Condition</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <MudIconButton Icon="@(_expandedInstanceIds.Contains(context.Id) ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+                               Size="Size.Small" OnClick="() => ToggleExpandAsync(context.Id)" />
+            </MudTd>
+            <MudTd DataLabel="Serial number">@context.SerialNumber</MudTd>
+            <MudTd DataLabel="Condition">@context.Condition</MudTd>
+            <MudTd DataLabel="Status">
+                @(context.CirculationState == ToolInstanceCirculationState.Retired ? "Retired" : (context.IsAvailable ? "Available" : "Unavailable"))
+            </MudTd>
+            <MudTd DataLabel="">
+                @if (context.CirculationState != ToolInstanceCirculationState.Retired)
+                {
+                    <MudButton Size="Size.Small" Color="Color.Primary" OnClick="() => NavigateToReserve(context.Id)">Reserve</MudButton>
+                    <AuthorizeView Policy="@CatalogPermissions.ToolInstances.ChangeCondition" Context="authState">
+                        <MudButton Size="Size.Small" OnClick="() => OpenChangeConditionDialog(context)">Change condition</MudButton>
+                    </AuthorizeView>
+                    <AuthorizeView Policy="@CatalogPermissions.ToolInstances.Retire" Context="authState">
+                        <MudButton Size="Size.Small" Color="Color.Error" OnClick="() => OpenRetireDialog(context)">Retire</MudButton>
+                    </AuthorizeView>
+                }
+            </MudTd>
+        </RowTemplate>
+        <ChildRowContent>
+            @if (_expandedInstanceIds.Contains(context.Id))
+            {
+                <MudTr>
+                    <MudTd colspan="5">
+                        @if (_expandedDetails.TryGetValue(context.Id, out var detail))
+                        {
+                            <MudText Typo="Typo.subtitle2" Class="mb-2">Photos</MudText>
+                            <ToolInstancePhotoGallery InstanceId="context.Id" Photos="detail.Photos" OnChanged="() => RefreshExpandedAsync(context.Id)" />
+
+                            <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">History</MudText>
+                            <MudSimpleTable Dense="true">
+                                <thead>
+                                    <tr><th>Changed at</th><th>Condition</th><th>Status</th><th>Reason</th></tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var change in detail.History.OrderBy(h => h.ChangedAt))
+                                    {
+                                        <tr>
+                                            <td>@change.ChangedAt.ToLocalTime()</td>
+                                            <td>@(change.PreviousCondition?.ToString() ?? "—") → @change.NewCondition</td>
+                                            <td>@(change.PreviousCirculationState?.ToString() ?? "—") → @change.NewCirculationState</td>
+                                            <td>@change.Reason</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </MudSimpleTable>
+                        }
+                        else
+                        {
+                            <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                        }
+                    </MudTd>
+                </MudTr>
+            }
+        </ChildRowContent>
+        <NoRecordsContent>
+            <CatalogEmptyState Text="@L["Catalog:EmptyState:NoInstances"]" Icon="@Icons.Material.Filled.Inbox" />
+        </NoRecordsContent>
+    </MudTable>
+}
+
+<ToolEditModal @bind-IsOpen="_editToolOpen" ToolId="ToolId" OnSaved="ReloadToolAsync" />
+
+<MudDialog @bind-Visible="_registerOpen">
+    <TitleContent>Register instance</TitleContent>
+    <DialogContent>
+        <MudTextField T="string" Label="Serial number" @bind-Value="_registerSerialNumber" Required="true" />
+        <MudSelect T="ToolCondition" Label="Condition" @bind-Value="_registerCondition">
+            @foreach (var condition in Enum.GetValues<ToolCondition>())
+            {
+                <MudSelectItem T="ToolCondition" Value="condition">@condition</MudSelectItem>
+            }
+        </MudSelect>
+        <MudTextField T="string" Label="Notes" @bind-Value="_registerNotes" Lines="2" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => _registerOpen = false">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="RegisterAsync">Register</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<MudDialog @bind-Visible="_changeConditionOpen">
+    <TitleContent>Change condition</TitleContent>
+    <DialogContent>
+        <MudSelect T="ToolCondition" Label="New condition" @bind-Value="_newCondition">
+            @foreach (var condition in Enum.GetValues<ToolCondition>())
+            {
+                <MudSelectItem T="ToolCondition" Value="condition">@condition</MudSelectItem>
+            }
+        </MudSelect>
+        <MudTextField T="string" Label="Reason" @bind-Value="_conditionReason" Lines="2" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => _changeConditionOpen = false">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="ChangeConditionAsync">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<MudDialog @bind-Visible="_retireOpen">
+    <TitleContent>Retire instance</TitleContent>
+    <DialogContent>
+        <MudTextField T="string" Label="Reason" @bind-Value="_retireReason" Required="true" Lines="2" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => _retireOpen = false">Cancel</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="RetireAsync">Retire</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter] public Guid ToolId { get; set; }
+
+    private ToolDetailDto? _tool;
+    private bool _showRetired;
+
+    private bool _editToolOpen;
+
+    private readonly HashSet<Guid> _expandedInstanceIds = new();
+    private readonly Dictionary<Guid, ToolInstanceDetailDto> _expandedDetails = new();
+
+    private bool _registerOpen;
+    private string _registerSerialNumber = string.Empty;
+    private ToolCondition _registerCondition = ToolCondition.Good;
+    private string? _registerNotes;
+
+    private bool _changeConditionOpen;
+    private Guid _targetInstanceId;
+    private string _targetConcurrencyStamp = string.Empty;
+    private ToolCondition _newCondition;
+    private string? _conditionReason;
+
+    private bool _retireOpen;
+    private string _retireReason = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadToolAsync();
+    }
+
+    private async Task ReloadToolAsync()
+    {
+        _tool = await ToolAppService.GetAsync(ToolId, _showRetired);
+        _expandedInstanceIds.Clear();
+        _expandedDetails.Clear();
+    }
+
+    private async Task OnShowRetiredChanged(bool value)
+    {
+        _showRetired = value;
+        await ReloadToolAsync();
+    }
+
+    private async Task ToggleExpandAsync(Guid instanceId)
+    {
+        if (!_expandedInstanceIds.Add(instanceId))
+        {
+            _expandedInstanceIds.Remove(instanceId);
+            return;
+        }
+
+        await RefreshExpandedAsync(instanceId);
+    }
+
+    private async Task RefreshExpandedAsync(Guid instanceId)
+    {
+        _expandedDetails[instanceId] = await ToolInstanceAppService.GetAsync(instanceId);
+    }
+
+    private void OpenRegisterDialog()
+    {
+        _registerSerialNumber = string.Empty;
+        _registerCondition = ToolCondition.Good;
+        _registerNotes = null;
+        _registerOpen = true;
+    }
+
+    private async Task RegisterAsync()
+    {
+        var ok = await TryRunAsync(() => ToolInstanceAppService.CreateAsync(new CreateToolInstanceDto
+        {
+            ToolId = ToolId,
+            SerialNumber = _registerSerialNumber,
+            Condition = _registerCondition,
+            Notes = _registerNotes
+        }));
+
+        if (ok)
+        {
+            _registerOpen = false;
+            await ReloadToolAsync();
+        }
+    }
+
+    private void OpenChangeConditionDialog(ToolInstanceDto instance)
+    {
+        _targetInstanceId = instance.Id;
+        _targetConcurrencyStamp = instance.ConcurrencyStamp;
+        _newCondition = instance.Condition;
+        _conditionReason = null;
+        _changeConditionOpen = true;
+    }
+
+    private async Task ChangeConditionAsync()
+    {
+        var ok = await TryRunAsync(() => ToolInstanceAppService.ChangeConditionAsync(_targetInstanceId, new ChangeToolInstanceConditionDto
+        {
+            Condition = _newCondition,
+            Reason = _conditionReason,
+            ConcurrencyStamp = _targetConcurrencyStamp
+        }));
+
+        if (ok)
+        {
+            _changeConditionOpen = false;
+            await ReloadToolAsync();
+        }
+    }
+
+    private void OpenRetireDialog(ToolInstanceDto instance)
+    {
+        _targetInstanceId = instance.Id;
+        _targetConcurrencyStamp = instance.ConcurrencyStamp;
+        _retireReason = string.Empty;
+        _retireOpen = true;
+    }
+
+    private async Task RetireAsync()
+    {
+        var ok = await TryRunAsync(() => ToolInstanceAppService.RetireAsync(_targetInstanceId, new RetireToolInstanceDto
+        {
+            Reason = _retireReason,
+            ConcurrencyStamp = _targetConcurrencyStamp
+        }));
+
+        if (ok)
+        {
+            _retireOpen = false;
+            await ReloadToolAsync();
+        }
+    }
+
+    // Pure URL navigation into Lending's own route — Catalog.Blazor takes no
+    // project reference on Lending (Constitution II: the only allowed
+    // cross-module coupling is Application.Contracts types and ILocalEventBus
+    // events, neither of which covers a Blazor-to-Blazor reference).
+    private void NavigateToReserve(Guid instanceId)
+    {
+        NavigationManager.NavigateTo($"/lending/reserve/{instanceId}");
+    }
+}

@@ -1,0 +1,108 @@
+@inherits CatalogComponentBase
+@inject IToolAppService ToolAppService
+@inject ICategoryAppService CategoryAppService
+
+<MudDialog @bind-Visible="IsOpen" Options="_dialogOptions">
+    <TitleContent>@(ToolId is null ? "New tool" : "Edit tool")</TitleContent>
+    <DialogContent>
+        <MudTextField T="string" Label="Name" @bind-Value="_name" Required="true" MaxLength="128" />
+        <MudTextField T="string" Label="Description" @bind-Value="_description" Lines="3" MaxLength="1024" />
+        <MudSelect T="Guid?" Label="Category" @bind-Value="_categoryId" Required="true">
+            @foreach (var category in _categories)
+            {
+                <MudSelectItem T="Guid?" Value="@((Guid?)category.Id)">@category.Name</MudSelectItem>
+            }
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    [Parameter] public Guid? ToolId { get; set; }
+    [Parameter] public Guid? DefaultCategoryId { get; set; }
+    [Parameter] public EventCallback OnSaved { get; set; }
+
+    private readonly DialogOptions _dialogOptions = new() { CloseOnEscapeKey = true };
+    private List<CategoryLookupDto> _categories = new();
+
+    private string _name = string.Empty;
+    private string? _description;
+    private Guid? _categoryId;
+    private string _concurrencyStamp = string.Empty;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!IsOpen)
+        {
+            return;
+        }
+
+        var lookup = await CategoryAppService.GetLookupAsync();
+        _categories = lookup.Items.OrderBy(c => c.Name).ToList();
+
+        if (ToolId is null)
+        {
+            _name = string.Empty;
+            _description = null;
+            _categoryId = DefaultCategoryId;
+            _concurrencyStamp = string.Empty;
+        }
+        else
+        {
+            var tool = await ToolAppService.GetAsync(ToolId.Value);
+            _name = tool.Name;
+            _description = tool.Description;
+            _categoryId = tool.CategoryId;
+            _concurrencyStamp = tool.ConcurrencyStamp;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_categoryId is null)
+        {
+            await Message.Warn("Choose a category.");
+            return;
+        }
+
+        var ok = await TryRunAsync(async () =>
+        {
+            if (ToolId is null)
+            {
+                await ToolAppService.CreateAsync(new CreateToolDto
+                {
+                    Name = _name,
+                    Description = _description,
+                    CategoryId = _categoryId.Value
+                });
+            }
+            else
+            {
+                await ToolAppService.UpdateAsync(ToolId.Value, new UpdateToolDto
+                {
+                    Name = _name,
+                    Description = _description,
+                    CategoryId = _categoryId.Value,
+                    ConcurrencyStamp = _concurrencyStamp
+                });
+            }
+        });
+
+        if (ok)
+        {
+            await Close();
+            await OnSaved.InvokeAsync();
+        }
+    }
+
+    private async Task Close()
+    {
+        IsOpen = false;
+        await IsOpenChanged.InvokeAsync(false);
+    }
+}

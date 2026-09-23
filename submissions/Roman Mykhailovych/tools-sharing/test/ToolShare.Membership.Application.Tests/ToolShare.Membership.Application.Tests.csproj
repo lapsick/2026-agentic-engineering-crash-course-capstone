@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\..\common.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <RootNamespace>ToolShare.Membership</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ToolShare.Membership.Application\ToolShare.Membership.Application.csproj" />
+    <ProjectReference Include="..\..\src\ToolShare.Membership.EntityFrameworkCore\ToolShare.Membership.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\..\src\ToolShare.Application\ToolShare.Application.csproj" />
+    <ProjectReference Include="..\..\src\ToolShare.EntityFrameworkCore\ToolShare.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\ToolShare.TestBase\ToolShare.TestBase.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="Volo.Abp.TestBase" Version="10.6.0" />
+    <PackageReference Include="Volo.Abp.Autofac" Version="10.6.0" />
+    <PackageReference Include="Volo.Abp.Authorization" Version="10.6.0" />
+    <PackageReference Include="Volo.Abp.EventBus" Version="10.6.0" />
+  </ItemGroup>
+
+</Project>

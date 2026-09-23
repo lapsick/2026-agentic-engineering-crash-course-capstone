@@ -1,0 +1,137 @@
+@inherits CatalogComponentBase
+@inject IToolInstanceAppService ToolInstanceAppService
+
+<MudGrid>
+    @foreach (var photo in Photos)
+    {
+        <MudItem xs="6" sm="4" md="3">
+            <MudPaper Class="pa-2 d-flex flex-column align-center" Outlined="true">
+                @if (_photoDataUrls.TryGetValue(photo.Id, out var dataUrl))
+                {
+                    <MudImage Src="@dataUrl" Height="120" ObjectFit="ObjectFit.Cover" />
+                }
+                else
+                {
+                    <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                }
+                <MudText Typo="Typo.caption" Class="mt-1">@photo.FileName</MudText>
+                @if (photo.IsPrimary)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Primary">Primary</MudText>
+                }
+                else
+                {
+                    <AuthorizeView Policy="@CatalogPermissions.ToolInstances.ManagePhotos" Context="authState">
+                        <MudButton Size="Size.Small" OnClick="() => SetPrimaryAsync(photo.Id)">Set primary</MudButton>
+                    </AuthorizeView>
+                }
+                <AuthorizeView Policy="@CatalogPermissions.ToolInstances.ManagePhotos" Context="authState">
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" OnClick="() => DeleteAsync(photo.Id)" />
+                </AuthorizeView>
+            </MudPaper>
+        </MudItem>
+    }
+</MudGrid>
+
+<AuthorizeView Policy="@CatalogPermissions.ToolInstances.ManagePhotos">
+    <div class="mt-2">
+        <InputFile OnChange="OnFileSelectedAsync" accept=".jpg,.jpeg,.png,.webp" />
+        @if (_uploadError is not null)
+        {
+            <MudText Color="Color.Error" Typo="Typo.caption">@_uploadError</MudText>
+        }
+    </div>
+</AuthorizeView>
+
+@code {
+    [Parameter] public List<ToolInstancePhotoDto> Photos { get; set; } = new();
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private const long MaxUploadSize = 5 * 1024 * 1024;
+    private static readonly string[] AllowedContentTypes = { "image/jpeg", "image/png", "image/webp" };
+
+    private readonly Dictionary<Guid, string> _photoDataUrls = new();
+    private string? _uploadError;
+    private List<Guid> _loadedFor = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var currentIds = Photos.Select(p => p.Id).ToList();
+        if (currentIds.SequenceEqual(_loadedFor))
+        {
+            return;
+        }
+
+        _loadedFor = currentIds;
+        _photoDataUrls.Clear();
+
+        foreach (var photo in Photos)
+        {
+            using var content = await ToolInstanceAppService.GetPhotoAsync(InstanceId, photo.Id);
+            await using var stream = content.GetStream();
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            _photoDataUrls[photo.Id] = $"data:{content.ContentType};base64,{Convert.ToBase64String(memoryStream.ToArray())}";
+        }
+    }
+
+    [Parameter] public Guid InstanceId { get; set; }
+
+    private async Task OnFileSelectedAsync(InputFileChangeEventArgs e)
+    {
+        _uploadError = null;
+
+        var file = e.File;
+        if (file.Size > MaxUploadSize)
+        {
+            _uploadError = "The photo exceeds the maximum allowed size of 5 MB.";
+            return;
+        }
+
+        if (!AllowedContentTypes.Contains(file.ContentType, StringComparer.OrdinalIgnoreCase))
+        {
+            _uploadError = "Unsupported photo format. Allowed formats: JPEG, PNG, WebP.";
+            return;
+        }
+
+        var ok = await TryRunAsync(async () =>
+        {
+            await using var stream = file.OpenReadStream(MaxUploadSize);
+            // file.Size must be passed explicitly: RemoteStreamContent's ContentLength
+            // otherwise stays null (its default) because Blazor's IBrowserFile stream is
+            // not seekable, so the app service's `input.File.ContentLength ?? 0` sees 0
+            // and every upload — regardless of actual size — was rejected as "too large".
+            var content = new RemoteStreamContent(stream, file.Name, file.ContentType, file.Size);
+            await ToolInstanceAppService.AddPhotoAsync(InstanceId, new AddToolInstancePhotoDto { File = content });
+        });
+
+        if (ok)
+        {
+            await OnChanged.InvokeAsync();
+        }
+    }
+
+    private async Task SetPrimaryAsync(Guid photoId)
+    {
+        var ok = await TryRunAsync(() => ToolInstanceAppService.SetPrimaryPhotoAsync(InstanceId, photoId));
+        if (ok)
+        {
+            await OnChanged.InvokeAsync();
+        }
+    }
+
+    private async Task DeleteAsync(Guid photoId)
+    {
+        var confirmed = await Message.Confirm("Delete this photo?", "Confirm delete");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        var ok = await TryRunAsync(() => ToolInstanceAppService.DeletePhotoAsync(InstanceId, photoId));
+        if (ok)
+        {
+            await OnChanged.InvokeAsync();
+        }
+    }
+}

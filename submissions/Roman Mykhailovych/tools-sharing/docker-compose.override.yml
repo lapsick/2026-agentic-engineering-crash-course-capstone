@@ -1,0 +1,23 @@
+# Automatically merged on top of docker-compose.yml by plain `docker compose
+# up` (no extra flag needed) — local-development-only convenience overrides.
+# Never required for the reproducible/CI path in quickstart.md Path A; edit
+# or delete this file freely for your own machine.
+services:
+  # NOTE: deliberately does NOT set ASPNETCORE_ENVIRONMENT=Development here.
+  # ToolShareBlazorModule.ConfigureVirtualFileSystem() replaces embedded
+  # virtual files with *physical* sibling source folders
+  # (../ToolShare.Domain.Shared, etc.) whenever IsDevelopment() is true —
+  # correct for `dotnet run` against a full checkout, but those folders
+  # don't exist in this published, source-free image, so Development would
+  # crash the app at startup with a DirectoryNotFoundException.
+  app:
+    ports:
+      # Change the host-side (left) port here if 8080 is already taken
+      # locally, e.g. "18080:8080".
+      - "8080:8080"
+
+  postgres:
+    ports:
+      # Change the host-side (left) port here if 5432 is already taken
+      # locally, e.g. "15432:5432".
+      - "5432:5432"

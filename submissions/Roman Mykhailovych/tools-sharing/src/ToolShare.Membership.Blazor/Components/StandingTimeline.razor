@@ -1,0 +1,65 @@
+@using ToolShare.Membership.Members
+
+@if (Entries is null || Entries.Count == 0)
+{
+    <MudText Typo="Typo.body2">No standing history yet.</MudText>
+}
+else
+{
+    <MudTimeline TimelinePosition="TimelinePosition.Start">
+        @foreach (var entry in Entries)
+        {
+            <MudTimelineItem Color="@ColorFor(entry)">
+                <ItemContent>
+                    <MudText Typo="Typo.body2">@entry.ChangedAt.ToLocalTime()</MudText>
+                    <MudText Typo="Typo.subtitle2">@DescribeKind(entry)</MudText>
+                    @if (!string.IsNullOrWhiteSpace(entry.Reason))
+                    {
+                        <MudText Typo="Typo.body2">@entry.Reason</MudText>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(entry.ChangedByDisplayName))
+                    {
+                        <MudText Typo="Typo.caption">by @entry.ChangedByDisplayName</MudText>
+                    }
+                </ItemContent>
+            </MudTimelineItem>
+        }
+    </MudTimeline>
+}
+
+@code {
+    /// <summary>
+    /// The history to render, already ordered <c>ChangedAt</c> ascending
+    /// (HR-03) by the caller — this component performs no sorting of its own
+    /// so it renders identically for <c>IMyMembershipAppService</c> (US3,
+    /// this phase) and <c>IMemberAppService.GetStandingHistoryAsync</c> (US4,
+    /// Phase 6's <c>MemberDetail.razor</c>).
+    /// </summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<MemberStandingChangeDto> Entries { get; set; } = Array.Empty<MemberStandingChangeDto>();
+
+    private static Color ColorFor(MemberStandingChangeDto entry) => entry.Kind switch
+    {
+        MemberStandingChangeKind.Enrolled => Color.Info,
+        MemberStandingChangeKind.StatusChanged => entry.NewStatus == MembershipStatus.Active ? Color.Success : Color.Warning,
+        MemberStandingChangeKind.RoleChanged => Color.Primary,
+        MemberStandingChangeKind.RatingOutcome => (entry.EffectivePoints ?? 0) >= 0 ? Color.Success : Color.Error,
+        _ => Color.Default
+    };
+
+    private static string DescribeKind(MemberStandingChangeDto entry) => entry.Kind switch
+    {
+        MemberStandingChangeKind.Enrolled => $"Enrolled as {entry.NewRole}",
+        MemberStandingChangeKind.StatusChanged => $"Status changed: {entry.PreviousStatus} → {entry.NewStatus}",
+        MemberStandingChangeKind.RoleChanged => $"Role changed: {entry.PreviousRole} → {entry.NewRole}",
+        MemberStandingChangeKind.RatingOutcome => DescribeRatingOutcome(entry),
+        _ => entry.Kind.ToString()
+    };
+
+    private static string DescribeRatingOutcome(MemberStandingChangeDto entry)
+    {
+        var points = entry.EffectivePoints ?? 0;
+        var sign = points >= 0 ? "+" : string.Empty;
+        return $"{entry.OutcomeType}: {sign}{points} pts (now {entry.ResultingRating})";
+    }
+}

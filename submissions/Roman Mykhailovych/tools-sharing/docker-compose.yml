@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: toolshare-postgres
+    environment:
+      POSTGRES_DB: toolshare
+      POSTGRES_USER: toolshare
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - toolshare-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U toolshare -d toolshare"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Runs the ToolShare.DbMigrator entrypoint step (RUN_MIGRATIONS=true) once,
+  # then `exec`s ToolShare.Blazor — see docker-entrypoint.sh. The migrator
+  # step is what actually creates/migrates both the host and "catalog"
+  # schemas and runs every IDataSeedContributor (admin user, Librarian role,
+  # the five starter categories); never applied by the running app itself
+  # (Constitution VI).
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: toolshare-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      RUN_MIGRATIONS: "true"
+      ASPNETCORE_URLS: "http://+:8080"
+      ASPNETCORE_ENVIRONMENT: "Production"
+      ConnectionStrings__Default: "Host=postgres;Port=5432;Database=toolshare;Username=toolshare;Password=${POSTGRES_PASSWORD};"
+      App__SelfUrl: "http://localhost:8080"
+      App__RedirectAllowedUrls: "http://localhost:8080"
+      AuthServer__Authority: "http://localhost:8080"
+      AuthServer__RequireHttpsMetadata: "false"
+      # BlobStoring FileSystem provider's base path for tool-instance photos
+      # (CatalogApplicationModule/CatalogPhotoOptions) — mounted below so
+      # photos survive `docker compose down` (but not `down -v`).
+      Catalog__Photos__BasePath: "/app/blobs"
+    volumes:
+      - toolshare-blobs:/app/blobs
+    ports:
+      - "8080:8080"
+
+volumes:
+  toolshare-postgres-data:
+  toolshare-blobs:

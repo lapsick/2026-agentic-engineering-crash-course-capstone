@@ -1,0 +1,19 @@
+{
+  "id": "fc14e877-61df-40e7-b0bb-8b9b6ae5a745",
+  "template": "empty",
+  "modules": {
+    "ToolShare": {
+      "path": "ToolShare.abpmdl"
+    }
+  },
+  "runProfiles": {
+    "Default": {
+      "path": "etc/abp-studio/run-profiles/Default.abprun.json"
+    }
+  },
+  "versions": {
+    "AbpFramework": "10.6.0",
+    "AbpCommercial": "10.6.0",
+    "LeptonX": "5.7.0-rc.1"
+  }
+}

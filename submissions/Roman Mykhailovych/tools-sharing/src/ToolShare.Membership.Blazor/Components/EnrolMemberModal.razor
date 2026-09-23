@@ -1,0 +1,72 @@
+@inherits MembershipComponentBase
+@inject IMemberAppService MemberAppService
+
+<MudDialog @bind-Visible="IsOpen" Options="_dialogOptions">
+    <TitleContent>Enrol a member</TitleContent>
+    <DialogContent>
+        <MudTextField T="string" Label="Display name" @bind-Value="_displayName" Required="true" MaxLength="128" />
+        <MudTextField T="string" Label="Email" @bind-Value="_email" Required="true" InputType="InputType.Email" MaxLength="256" />
+        <MudTextField T="string" Label="Initial password" @bind-Value="_initialPassword" Required="true" InputType="InputType.Password" MaxLength="128" />
+        <MudSelect T="CommunityRole" Label="Role" @bind-Value="_role">
+            <MudSelectItem T="CommunityRole" Value="CommunityRole.Member">Member</MudSelectItem>
+            <MudSelectItem T="CommunityRole" Value="CommunityRole.Librarian">Librarian</MudSelectItem>
+            <MudSelectItem T="CommunityRole" Value="CommunityRole.Administrator">Administrator</MudSelectItem>
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync">Enrol</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    [Parameter] public EventCallback OnSaved { get; set; }
+
+    private readonly DialogOptions _dialogOptions = new() { CloseOnEscapeKey = true };
+
+    private string _displayName = string.Empty;
+    private string _email = string.Empty;
+    private string _initialPassword = string.Empty;
+    private CommunityRole _role = CommunityRole.Member;
+
+    protected override void OnParametersSet()
+    {
+        if (!IsOpen)
+        {
+            return;
+        }
+
+        _displayName = string.Empty;
+        _email = string.Empty;
+        _initialPassword = string.Empty;
+        _role = CommunityRole.Member;
+    }
+
+    private async Task SaveAsync()
+    {
+        var ok = await TryRunAsync(async () =>
+        {
+            await MemberAppService.EnrolAsync(new EnrolMemberDto
+            {
+                DisplayName = _displayName,
+                Email = _email,
+                InitialPassword = _initialPassword,
+                Role = _role
+            });
+        });
+
+        if (ok)
+        {
+            await Close();
+            await OnSaved.InvokeAsync();
+        }
+    }
+
+    private async Task Close()
+    {
+        IsOpen = false;
+        await IsOpenChanged.InvokeAsync(false);
+    }
+}

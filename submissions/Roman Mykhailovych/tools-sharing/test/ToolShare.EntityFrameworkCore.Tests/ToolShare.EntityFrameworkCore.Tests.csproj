@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\..\common.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <RootNamespace>ToolShare</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ToolShare.EntityFrameworkCore\ToolShare.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\ToolShare.Application.Tests\ToolShare.Application.Tests.csproj" />
+    <ProjectReference Include="..\ToolShare.TestBase\ToolShare.TestBase.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+  </ItemGroup>
+
+</Project>

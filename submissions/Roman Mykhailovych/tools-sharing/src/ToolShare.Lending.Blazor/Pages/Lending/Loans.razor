@@ -1,0 +1,129 @@
+@page "/lending/loans"
+@attribute [Authorize(LendingPermissions.Loans.Default)]
+@using ToolShare.Lending.Permissions
+@inherits LendingComponentBase
+@inject ILoanAppService LoanAppService
+
+<MudText Typo="Typo.h4" Class="mb-4">@L["Menu:Lending.Loans"]</MudText>
+
+<AuthorizeView Policy="@LendingPermissions.Loans.Checkout" Context="checkoutAuthState">
+    <MudPaper Class="pa-4 mb-4">
+        <MudText Typo="Typo.h6" Class="mb-2">Check out a reservation</MudText>
+        <MudTextField T="string" Label="Reservation id" @bind-Value="_checkOutReservationId" />
+        <MudButton Class="mt-2" Color="Color.Primary" Variant="Variant.Filled" OnClick="CheckOutAsync">Check out</MudButton>
+    </MudPaper>
+</AuthorizeView>
+
+<MudCheckBox T="bool" Value="_onlyOverdue" ValueChanged="OnOnlyOverdueChanged" Label="Only overdue" Class="mb-2" />
+
+<MudTable @ref="_table" ServerData="ServerReload" Hover="true" Dense="true">
+    <HeaderContent>
+        <MudTh>Instance</MudTh>
+        <MudTh>Checked out</MudTh>
+        <MudTh>Planned return</MudTh>
+        <MudTh>Returned</MudTh>
+        <MudTh>Overdue</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Instance">@context.ToolInstanceId</MudTd>
+        <MudTd DataLabel="Checked out">@context.CheckedOutAt.ToLocalTime()</MudTd>
+        <MudTd DataLabel="Planned return">@context.PlannedReturnDate</MudTd>
+        <MudTd DataLabel="Returned">@(context.ReturnedAt?.ToLocalTime().ToString() ?? "—")</MudTd>
+        <MudTd DataLabel="Overdue">@(context.IsOverdue ? "Yes" : "No")</MudTd>
+        <MudTd DataLabel="">
+            @if (context.ReturnedAt is null)
+            {
+                <AuthorizeView Policy="@LendingPermissions.Loans.Return" Context="returnAuthState">
+                    <MudButton Size="Size.Small" OnClick="() => OpenReturnDialog(context.Id)">Record return</MudButton>
+                </AuthorizeView>
+            }
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText Align="Align.Center" Class="pa-4">No loans found.</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <MudTablePager />
+    </PagerContent>
+</MudTable>
+
+<MudDialog @bind-Visible="_returnDialogOpen">
+    <TitleContent>Record return</TitleContent>
+    <DialogContent>
+        <MudSelect T="ToolCondition" Label="Returned condition" @bind-Value="_returnedCondition">
+            @foreach (var condition in Enum.GetValues<ToolCondition>())
+            {
+                <MudSelectItem T="ToolCondition" Value="condition">@condition</MudSelectItem>
+            }
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => _returnDialogOpen = false">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="RecordReturnAsync">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private MudTable<LoanDto> _table = default!;
+    private bool _onlyOverdue;
+    private string _checkOutReservationId = string.Empty;
+
+    private bool _returnDialogOpen;
+    private Guid _targetLoanId;
+    private ToolCondition _returnedCondition = ToolCondition.Good;
+
+    private async Task<TableData<LoanDto>> ServerReload(TableState state, CancellationToken cancellationToken)
+    {
+        var result = await LoanAppService.GetListAsync(new GetLoanListInput
+        {
+            OnlyOverdue = _onlyOverdue,
+            SkipCount = state.Page * state.PageSize,
+            MaxResultCount = state.PageSize,
+            Sorting = state.SortLabel
+        });
+
+        return new TableData<LoanDto> { Items = result.Items, TotalItems = (int)result.TotalCount };
+    }
+
+    private async Task OnOnlyOverdueChanged(bool value)
+    {
+        _onlyOverdue = value;
+        await _table.ReloadServerData();
+    }
+
+    private async Task CheckOutAsync()
+    {
+        if (!Guid.TryParse(_checkOutReservationId, out var reservationId))
+        {
+            await Message.Error("Enter a valid reservation id.");
+            return;
+        }
+
+        var ok = await TryRunAsync(() => LoanAppService.CheckOutAsync(new CheckOutReservationDto { ReservationId = reservationId }));
+
+        if (ok)
+        {
+            _checkOutReservationId = string.Empty;
+            await _table.ReloadServerData();
+        }
+    }
+
+    private void OpenReturnDialog(Guid loanId)
+    {
+        _targetLoanId = loanId;
+        _returnedCondition = ToolCondition.Good;
+        _returnDialogOpen = true;
+    }
+
+    private async Task RecordReturnAsync()
+    {
+        var ok = await TryRunAsync(() => LoanAppService.ReturnAsync(_targetLoanId, new RecordReturnDto { ReturnedCondition = _returnedCondition }));
+
+        if (ok)
+        {
+            _returnDialogOpen = false;
+            await _table.ReloadServerData();
+        }
+    }
+}

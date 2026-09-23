@@ -1,0 +1,31 @@
+{
+  "culture": "en",
+  "texts": {
+    "Lending:LoanTermExceeded": "The requested date range exceeds the maximum loan term of {0} days.",
+    "Lending:InstanceUnavailable": "This instance is not currently available.",
+    "Lending:InstanceAlreadyReservedForRange": "This instance is already reserved for part of that date range. Join the waitlist instead.",
+    "Lending:MemberHasOverdueLoan": "You have an overdue loan. Return it before creating a new reservation.",
+    "Lending:ConcurrentLoanLimitReached": "You have reached your concurrent-loan limit of {0}.",
+    "Lending:ReservationNotCancellable": "This reservation can no longer be cancelled.",
+    "Lending:AlreadyOnWaitlist": "You are already on the waitlist for this instance.",
+    "Lending:MaintenanceCostRequired": "A maintenance cost is required to close this request.",
+    "Lending:MaintenanceRequestAlreadyOpen": "This instance already has an open maintenance request.",
+    "Lending:NoMatchingActiveReservation": "No active reservation was found to check out.",
+    "Lending:InvalidStateTransition": "This action is not valid in the item's current state.",
+    "Lending:ConcurrencyConflict": "This record was changed by someone else. Please reload and try again.",
+    "Lending:InvalidReportDateRange": "Select a valid date range: the start date must not be after the end date, and both dates are required for this report.",
+
+    "Permission:Lending": "Lending",
+    "Permission:Lending.Loans": "Reservations and Loans",
+    "Permission:Lending.Loans.Checkout": "Check out a tool",
+    "Permission:Lending.Loans.Return": "Record a return",
+    "Permission:Lending.Maintenance.Close": "Close a maintenance request",
+    "Permission:Lending.Reports": "View reports",
+
+    "Menu:Lending": "Lending",
+    "Menu:Lending.MyReservations": "My Reservations",
+    "Menu:Lending.Loans": "Loans",
+    "Menu:Lending.MaintenanceRequests": "Maintenance",
+    "Menu:Lending.Reports": "Reports"
+  }
+}

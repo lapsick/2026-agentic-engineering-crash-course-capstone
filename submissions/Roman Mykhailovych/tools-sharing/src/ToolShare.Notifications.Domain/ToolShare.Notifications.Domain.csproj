@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\..\common.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <RootNamespace>ToolShare.Notifications</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ToolShare.Notifications.Domain.Shared\ToolShare.Notifications.Domain.Shared.csproj" />
+    <!-- NotificationKindResolver classifies the two source events by their own
+         Domain.Shared kind enums (LendingNotificationKind, MemberStandingChangeKind,
+         MembershipStatus) — the same "reaches consumers transitively through
+         Domain.Shared" layer Lending's own Domain project already references
+         Catalog's Domain.Shared through (research R4). Not a reference to
+         either module's Domain or EntityFrameworkCore layer, which
+         Constitution II forbids. -->
+    <ProjectReference Include="..\ToolShare.Lending.Domain.Shared\ToolShare.Lending.Domain.Shared.csproj" />
+    <ProjectReference Include="..\ToolShare.Membership.Domain.Shared\ToolShare.Membership.Domain.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Volo.Abp.Ddd.Domain" Version="10.6.0" />
+  </ItemGroup>
+
+</Project>

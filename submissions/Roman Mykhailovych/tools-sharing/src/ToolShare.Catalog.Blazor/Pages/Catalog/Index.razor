@@ -1,0 +1,127 @@
+@page "/catalog"
+@inherits CatalogComponentBase
+@inject IToolAppService ToolAppService
+@inject ICategoryAppService CategoryAppService
+@inject NavigationManager NavigationManager
+
+<MudText Typo="Typo.h4" Class="mb-4">@L["Menu:Catalog.Tools"]</MudText>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudGrid AlignItems="Center.Baseline">
+        <MudItem xs="12" sm="4">
+            <MudTextField T="string" Label="Search" Value="_filter" ValueChanged="OnFilterChanged" Immediate="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudSelect T="Guid?" Label="Category" Value="_categoryId" ValueChanged="OnCategoryChanged" Clearable="true">
+                @foreach (var category in _categories)
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)category.Id)">@category.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudCheckBox T="bool" Value="_onlyAvailable" ValueChanged="OnOnlyAvailableChanged" Label="@L["Catalog:OnlyAvailable"]" />
+        </MudItem>
+        <MudItem xs="12" sm="2" Class="d-flex justify-end">
+            <AuthorizeView Policy="@CatalogPermissions.Tools.Create">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog">
+                    New tool
+                </MudButton>
+            </AuthorizeView>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudTable @ref="_table" ServerData="ServerReload" Hover="true" Dense="true">
+    <HeaderContent>
+        <MudTh>Name</MudTh>
+        <MudTh>Category</MudTh>
+        <MudTh>Instances</MudTh>
+        <MudTh>Available</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Name">
+            <MudLink Href="@($"/catalog/tools/{context.Id}")">@context.Name</MudLink>
+        </MudTd>
+        <MudTd DataLabel="Category">@context.CategoryName</MudTd>
+        <MudTd DataLabel="Instances">@context.InstanceCount</MudTd>
+        <MudTd DataLabel="Available">@context.AvailableInstanceCount</MudTd>
+        <MudTd DataLabel="">
+            <AuthorizeView Policy="@CatalogPermissions.Tools.Edit" Context="authState">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="() => OpenEditDialog(context.Id)" />
+            </AuthorizeView>
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <CatalogEmptyState Text="@L["Catalog:EmptyState:NoResults"]" Icon="@Icons.Material.Filled.SearchOff" />
+    </NoRecordsContent>
+    <PagerContent>
+        <MudTablePager />
+    </PagerContent>
+</MudTable>
+
+<ToolEditModal @bind-IsOpen="_dialogOpen" ToolId="_editingId" DefaultCategoryId="_categoryId" OnSaved="() => _table.ReloadServerData()" />
+
+@code {
+    private MudTable<ToolListItemDto> _table = default!;
+    private string _filter = string.Empty;
+    private Guid? _categoryId;
+    private bool _onlyAvailable;
+    private List<CategoryLookupDto> _categories = new();
+
+    private bool _dialogOpen;
+    private Guid? _editingId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var lookup = await CategoryAppService.GetLookupAsync();
+        _categories = lookup.Items.OrderBy(c => c.Name).ToList();
+    }
+
+    private async Task<TableData<ToolListItemDto>> ServerReload(TableState state, CancellationToken cancellationToken)
+    {
+        var input = new GetToolListInput
+        {
+            Filter = _filter,
+            CategoryId = _categoryId,
+            OnlyAvailable = _onlyAvailable,
+            SkipCount = state.Page * state.PageSize,
+            MaxResultCount = state.PageSize,
+            Sorting = state.SortLabel
+        };
+
+        var result = await ToolAppService.GetListAsync(input);
+        return new TableData<ToolListItemDto> { Items = result.Items, TotalItems = (int)result.TotalCount };
+    }
+
+    private async Task OnFilterChanged(string value)
+    {
+        _filter = value;
+        await _table.ReloadServerData();
+    }
+
+    private async Task OnCategoryChanged(Guid? value)
+    {
+        _categoryId = value;
+        await _table.ReloadServerData();
+    }
+
+    private async Task OnOnlyAvailableChanged(bool value)
+    {
+        _onlyAvailable = value;
+        await _table.ReloadServerData();
+    }
+
+    private void OpenCreateDialog()
+    {
+        _editingId = null;
+        _dialogOpen = true;
+    }
+
+    private void OpenEditDialog(Guid toolId)
+    {
+        _editingId = toolId;
+        _dialogOpen = true;
+    }
+}

@@ -1,0 +1,59 @@
+@inherits NotificationsComponentBase
+@implements IDisposable
+@inject IMyNotificationsAppService MyNotificationsAppService
+@inject IMemberNotificationBroadcaster Broadcaster
+
+@* US2/FR-003: the live unread indicator, mounted in the app toolbar so it updates from any page.
+   Only rendered for an authenticated caller; a non-enrolled authenticated user simply shows no badge. *@
+@if (CurrentUser.IsAuthenticated)
+{
+    <MudBadge Content="_unreadCount" Visible="_unreadCount > 0" Color="Color.Error" Overlap="true" Bordered="true">
+        <MudIconButton Icon="@Icons.Material.Filled.Notifications"
+                       Color="Color.Inherit"
+                       Href="/notifications/my"
+                       aria-label="@BellLabel" />
+    </MudBadge>
+}
+
+@code {
+    private int _unreadCount;
+    private IDisposable? _subscription;
+
+    private string BellLabel => L["Menu:Notifications.MyNotifications"];
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!CurrentUser.IsAuthenticated)
+        {
+            return;
+        }
+
+        try
+        {
+            // FR-002: subscribe keyed to the caller's OWN member id, so only this member's signals arrive.
+            var memberId = await MyNotificationsAppService.GetMyMemberIdAsync();
+            _subscription = Broadcaster.Subscribe(memberId, () => InvokeAsync(async () =>
+            {
+                await RefreshCountAsync();
+                StateHasChanged();
+            }));
+
+            await RefreshCountAsync();
+        }
+        catch
+        {
+            // Authenticated but not an enrolled/active member yet — show no badge, never break the
+            // toolbar (mirrors NotificationsMenuContributor's defensive handling).
+        }
+    }
+
+    private async Task RefreshCountAsync()
+    {
+        _unreadCount = await MyNotificationsAppService.GetUnreadCountAsync();
+    }
+
+    public void Dispose()
+    {
+        _subscription?.Dispose();
+    }
+}

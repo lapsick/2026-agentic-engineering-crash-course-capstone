@@ -1,0 +1,74 @@
+@page "/lending/my-reservations"
+@attribute [Authorize]
+@inherits LendingComponentBase
+@inject IMyLendingAppService MyLendingAppService
+@inject IReservationAppService ReservationAppService
+
+<MudText Typo="Typo.h4" Class="mb-4">@L["Menu:Lending.MyReservations"]</MudText>
+
+<MudText Typo="Typo.h6" Class="mb-2">Reservations</MudText>
+<MudTable Items="_reservations" Hover="true" Dense="true">
+    <HeaderContent>
+        <MudTh>Start</MudTh>
+        <MudTh>End</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Start">@context.StartDate</MudTd>
+        <MudTd DataLabel="End">@context.EndDate</MudTd>
+        <MudTd DataLabel="Status">@context.Status</MudTd>
+        <MudTd DataLabel="">
+            @if (context.Status == ReservationStatus.Active)
+            {
+                <MudButton Size="Size.Small" Color="Color.Error" OnClick="() => CancelAsync(context.Id)">Cancel</MudButton>
+            }
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText Align="Align.Center" Class="pa-4">No reservations.</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+<MudText Typo="Typo.h6" Class="mt-6 mb-2">Waitlist</MudText>
+<MudTable Items="_waitlistEntries" Hover="true" Dense="true">
+    <HeaderContent>
+        <MudTh>Joined</MudTh>
+        <MudTh>State</MudTh>
+        <MudTh>Offer expires</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Joined">@context.JoinedAt.ToLocalTime()</MudTd>
+        <MudTd DataLabel="State">@context.OfferState</MudTd>
+        <MudTd DataLabel="Offer expires">@(context.OfferExpiresAt?.ToLocalTime().ToString() ?? "—")</MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText Align="Align.Center" Class="pa-4">Not on any waitlist.</MudText>
+    </NoRecordsContent>
+</MudTable>
+
+@code {
+    private List<ReservationDto> _reservations = new();
+    private List<WaitlistEntryDto> _waitlistEntries = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _reservations = await MyLendingAppService.GetMyReservationsAsync();
+        _waitlistEntries = await MyLendingAppService.GetMyWaitlistEntriesAsync();
+    }
+
+    private async Task CancelAsync(Guid id)
+    {
+        var ok = await TryRunAsync(() => ReservationAppService.CancelAsync(id));
+
+        if (ok)
+        {
+            await ReloadAsync();
+        }
+    }
+}

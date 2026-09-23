@@ -1,0 +1,20 @@
+using System;
+using System.ComponentModel.DataAnnotations;
+
+namespace ToolShare.Catalog.Tools;
+
+public class UpdateToolDto
+{
+    [Required]
+    [StringLength(CatalogDomainSharedConsts.ToolNameMaxLength, MinimumLength = CatalogDomainSharedConsts.ToolNameMinLength)]
+    public string Name { get; set; } = default!;
+
+    [StringLength(CatalogDomainSharedConsts.ToolDescriptionMaxLength)]
+    public string? Description { get; set; }
+
+    [Required]
+    public Guid CategoryId { get; set; }
+
+    [Required]
+    public string ConcurrencyStamp { get; set; } = default!;
+}

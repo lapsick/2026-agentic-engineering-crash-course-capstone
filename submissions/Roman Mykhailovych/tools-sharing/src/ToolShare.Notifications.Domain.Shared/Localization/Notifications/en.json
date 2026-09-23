@@ -1,0 +1,11 @@
+{
+  "culture": "en",
+  "texts": {
+    "Notifications:InvalidStateTransition": "This action is not valid in the notification's current state.",
+
+    "Permission:Notifications": "Notifications",
+    "Permission:Notifications.Audit": "Audit any member's notification history",
+
+    "Menu:Notifications.MyNotifications": "Notifications"
+  }
+}

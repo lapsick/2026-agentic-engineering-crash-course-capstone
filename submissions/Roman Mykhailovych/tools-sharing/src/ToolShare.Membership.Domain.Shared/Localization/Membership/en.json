@@ -1,0 +1,36 @@
+{
+  "culture": "en",
+  "texts": {
+    "Membership:DisplayNameRequired": "A display name is required.",
+    "Membership:IdentityAlreadyEnrolled": "This identity already has a member record.",
+    "Membership:AlreadyDeactivated": "This member is already deactivated.",
+    "Membership:AlreadyActive": "This member is already active.",
+    "Membership:RoleUnchanged": "The new role is the same as the current role.",
+    "Membership:LastAdministrator": "The last active Administrator cannot be deactivated or demoted.",
+    "Membership:NotAnEnrolledMember": "The specified user is not an enrolled member.",
+    "Membership:MembershipInactive": "Your membership is not active. Please contact an administrator.",
+    "Membership:ManualAdjustmentNotReportable": "Manual adjustments cannot be reported through this operation.",
+    "Membership:InvalidRule": "The community rule '{0}' is invalid.",
+    "Membership:AdjustmentReasonRequired": "A reason is required for a manual rating adjustment.",
+
+    "Permission:Membership": "Membership",
+    "Permission:Membership.Members": "Roster",
+    "Permission:Membership.Members.Enrol": "Enrol a member",
+    "Permission:Membership.Members.ChangeRole": "Change a member's role",
+    "Permission:Membership.Members.Deactivate": "Deactivate / reactivate a member",
+    "Permission:Membership.Members.AdjustRating": "Manually adjust a member's rating",
+    "Permission:Membership.Rules": "Community Rules",
+    "Permission:Membership.Rules.Edit": "Edit community rules",
+    "Permission:Membership.Reliability": "Reliability Reporting",
+    "Permission:Membership.Reliability.Report": "Report a reliability outcome",
+
+    "Menu:Membership": "Membership",
+    "Menu:Membership.Members": "Roster",
+    "Menu:Membership.Rules": "Community Rules",
+    "Menu:Membership.MyMembership": "My Membership",
+
+    "Membership:NotEnrolled:Title": "You are not a member yet",
+    "Membership:NotEnrolled:Message": "Your account is not (or is no longer) an active member of this community. Please contact an administrator.",
+    "Membership:ConcurrencyConflict": "This member was changed by someone else. Please reload and try again."
+  }
+}

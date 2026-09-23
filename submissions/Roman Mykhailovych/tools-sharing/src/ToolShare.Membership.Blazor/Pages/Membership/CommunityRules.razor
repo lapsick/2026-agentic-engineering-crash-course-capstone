@@ -1,0 +1,97 @@
+@page "/membership/rules"
+@attribute [Authorize]
+@using ToolShare.Membership.CommunityRules
+@inherits MembershipComponentBase
+@inject ICommunityRulesAppService CommunityRulesAppService
+
+<MudText Typo="Typo.h4" Class="mb-4">@L["Menu:Membership.Rules"]</MudText>
+
+@if (_rules is not null)
+{
+    <MudPaper Class="pa-4 mb-4">
+        <MudText Typo="Typo.body2" Class="mb-4">
+            @if (_rules.LastChangedAt is not null)
+            {
+                <text>Last changed @_rules.LastChangedAt.Value.ToLocalTime() by @(_rules.LastChangedByDisplayName ?? "an administrator")</text>
+            }
+            else
+            {
+                <text>Not changed since installation — showing the default values.</text>
+            }
+        </MudText>
+
+        <AuthorizeView Policy="@MembershipPermissions.Rules.Edit" Context="editCtx">
+            <Authorized>
+                <MudGrid>
+                    <MudItem xs="12" sm="4"><MudNumericField T="int" Label="Max loan term (days)" @bind-Value="_editable.MaxLoanTermDays" Min="1" Max="365" /></MudItem>
+                    <MudItem xs="12" sm="4"><MudNumericField T="int" Label="Concurrent loan limit" @bind-Value="_editable.ConcurrentLoanLimit" Min="1" Max="100" /></MudItem>
+                    <MudItem xs="12" sm="4"><MudNumericField T="int" Label="Low rating threshold" @bind-Value="_editable.LowRatingThreshold" Min="0" Max="100" /></MudItem>
+                    <MudItem xs="12" sm="4"><MudNumericField T="int" Label="Reduced concurrent loan limit" @bind-Value="_editable.ReducedConcurrentLoanLimit" Min="1" Max="100" /></MudItem>
+                    <MudItem xs="12" sm="4"><MudNumericField T="int" Label="Overdue penalty points" @bind-Value="_editable.OverduePenaltyPoints" Min="0" Max="100" /></MudItem>
+                    <MudItem xs="12" sm="4"><MudNumericField T="int" Label="Damage penalty points" @bind-Value="_editable.DamagePenaltyPoints" Min="0" Max="100" /></MudItem>
+                    <MudItem xs="12" sm="4"><MudNumericField T="int" Label="Clean return reward points" @bind-Value="_editable.CleanReturnRewardPoints" Min="0" Max="100" /></MudItem>
+                    <MudItem xs="12" sm="4"><MudNumericField T="int" Label="Waitlist offer window (hours)" @bind-Value="_editable.WaitlistOfferWindowHours" Min="1" Max="8760" /></MudItem>
+                    <MudItem xs="12" sm="4"><MudNumericField T="int" Label="Reminder lead time (days)" @bind-Value="_editable.ReminderLeadTimeDays" Min="1" Max="365" /></MudItem>
+                </MudGrid>
+
+                <MudButton Class="mt-4" Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync">Save</MudButton>
+            </Authorized>
+            <NotAuthorized>
+                <MudGrid>
+                    <MudItem xs="12" sm="4"><MudText Typo="Typo.caption">Max loan term (days)</MudText><MudText>@_rules.MaxLoanTermDays</MudText></MudItem>
+                    <MudItem xs="12" sm="4"><MudText Typo="Typo.caption">Concurrent loan limit</MudText><MudText>@_rules.ConcurrentLoanLimit</MudText></MudItem>
+                    <MudItem xs="12" sm="4"><MudText Typo="Typo.caption">Low rating threshold</MudText><MudText>@_rules.LowRatingThreshold</MudText></MudItem>
+                    <MudItem xs="12" sm="4"><MudText Typo="Typo.caption">Reduced concurrent loan limit</MudText><MudText>@_rules.ReducedConcurrentLoanLimit</MudText></MudItem>
+                    <MudItem xs="12" sm="4"><MudText Typo="Typo.caption">Overdue penalty points</MudText><MudText>@_rules.OverduePenaltyPoints</MudText></MudItem>
+                    <MudItem xs="12" sm="4"><MudText Typo="Typo.caption">Damage penalty points</MudText><MudText>@_rules.DamagePenaltyPoints</MudText></MudItem>
+                    <MudItem xs="12" sm="4"><MudText Typo="Typo.caption">Clean return reward points</MudText><MudText>@_rules.CleanReturnRewardPoints</MudText></MudItem>
+                    <MudItem xs="12" sm="4"><MudText Typo="Typo.caption">Waitlist offer window (hours)</MudText><MudText>@_rules.WaitlistOfferWindowHours</MudText></MudItem>
+                    <MudItem xs="12" sm="4"><MudText Typo="Typo.caption">Reminder lead time (days)</MudText><MudText>@_rules.ReminderLeadTimeDays</MudText></MudItem>
+                </MudGrid>
+            </NotAuthorized>
+        </AuthorizeView>
+    </MudPaper>
+}
+
+@code {
+    private CommunityRulesDetailDto? _rules;
+    private UpdateCommunityRulesDto _editable = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _rules = await CommunityRulesAppService.GetAsync();
+        _editable = new UpdateCommunityRulesDto
+        {
+            MaxLoanTermDays = _rules.MaxLoanTermDays,
+            ConcurrentLoanLimit = _rules.ConcurrentLoanLimit,
+            LowRatingThreshold = _rules.LowRatingThreshold,
+            ReducedConcurrentLoanLimit = _rules.ReducedConcurrentLoanLimit,
+            OverduePenaltyPoints = _rules.OverduePenaltyPoints,
+            DamagePenaltyPoints = _rules.DamagePenaltyPoints,
+            CleanReturnRewardPoints = _rules.CleanReturnRewardPoints,
+            WaitlistOfferWindowHours = _rules.WaitlistOfferWindowHours,
+            ReminderLeadTimeDays = _rules.ReminderLeadTimeDays,
+            ConcurrencyStamp = _rules.ConcurrencyStamp
+        };
+    }
+
+    /// <summary>
+    /// A stale save (<c>AbpDbConcurrencyException</c>) and an invalid rule
+    /// (<c>Membership:InvalidRule</c>, naming the field) are both surfaced as
+    /// a friendly message by <c>TryRunAsync</c> — never a raw stack trace.
+    /// </summary>
+    private async Task SaveAsync()
+    {
+        var ok = await TryRunAsync(() => CommunityRulesAppService.UpdateAsync(_editable));
+
+        if (ok)
+        {
+            await ReloadAsync();
+        }
+    }
+}

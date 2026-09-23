@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\..\common.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <RootNamespace>ToolShare.Lending</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ToolShare.Lending.Domain.Shared\ToolShare.Lending.Domain.Shared.csproj" />
+    <!-- ToolCondition is a Domain.Shared value type (the same "reaches
+         consumers transitively" layer Membership's own Application.Contracts
+         exposes) — Loan stores what condition Catalog reported at checkout/
+         return as this same value, never duplicating a parallel enum. This is
+         not a reference to Catalog's Domain or EntityFrameworkCore layer,
+         which Constitution II forbids; Domain.Shared is the one layer
+         explicitly meant to be shared. -->
+    <ProjectReference Include="..\ToolShare.Catalog.Domain.Shared\ToolShare.Catalog.Domain.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Volo.Abp.Ddd.Domain" Version="10.6.0" />
+  </ItemGroup>
+
+</Project>

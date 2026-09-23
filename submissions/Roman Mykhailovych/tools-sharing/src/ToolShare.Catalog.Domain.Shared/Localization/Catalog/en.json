@@ -1,0 +1,51 @@
+{
+  "culture": "en",
+  "texts": {
+    "Permission:Catalog": "Catalog",
+    "Permission:Catalog.Categories": "Categories",
+    "Permission:Catalog.Categories.Create": "Create categories",
+    "Permission:Catalog.Categories.Edit": "Edit categories",
+    "Permission:Catalog.Categories.Delete": "Delete categories",
+    "Permission:Catalog.Tools": "Tools",
+    "Permission:Catalog.Tools.Create": "Create tools",
+    "Permission:Catalog.Tools.Edit": "Edit tools",
+    "Permission:Catalog.Tools.Delete": "Delete tools",
+    "Permission:Catalog.ToolInstances": "Tool instances",
+    "Permission:Catalog.ToolInstances.Create": "Register instances",
+    "Permission:Catalog.ToolInstances.Edit": "Edit instances",
+    "Permission:Catalog.ToolInstances.ChangeCondition": "Change instance condition",
+    "Permission:Catalog.ToolInstances.Retire": "Retire instances",
+    "Permission:Catalog.ToolInstances.ManagePhotos": "Manage instance photos",
+    "Permission:Catalog.ToolInstances.ReportLendingState": "Report lending state (checkout/return/maintenance)",
+
+    "Catalog:InstanceNotAvailableForLoan": "This instance is not available to be checked out.",
+    "Catalog:InstanceNotOnLoan": "This instance is not currently on loan.",
+    "Catalog:InstanceNotUnderMaintenance": "This instance does not have an open maintenance request.",
+
+    "Catalog:CategoryNameAlreadyExists": "Another category already uses the name '{0}'.",
+    "Catalog:CategoryHasTools": "This category cannot be deleted because it still has tools assigned to it.",
+    "Catalog:CategoryNotFound": "The specified category does not exist.",
+    "Catalog:ToolNotFound": "The specified tool does not exist.",
+    "Catalog:ToolHasInstances": "This tool cannot be deleted because it still has instances registered.",
+    "Catalog:InvalidSerialNumber": "The serial number is required, must be 1-64 characters, and may only contain letters, digits, and the characters - _ / . (starting with a letter or digit).",
+    "Catalog:SerialNumberAlreadyExists": "The serial number '{0}' is already used in the catalog.",
+    "Catalog:InstanceIsRetired": "The condition of a retired instance cannot be changed.",
+    "Catalog:ConditionUnchanged": "The new condition is the same as the current condition.",
+    "Catalog:InstanceAlreadyRetired": "This instance is already retired.",
+    "Catalog:RetirementReasonRequired": "A reason is required to retire an instance.",
+    "Catalog:UnsupportedPhotoFormat": "The photo format '{0}' is not supported. Allowed formats: JPEG, PNG, WebP.",
+    "Catalog:PhotoTooLarge": "The photo exceeds the maximum allowed size of {0}.",
+    "Catalog:TooManyPhotos": "This instance already has the maximum number of photos allowed ({0}).",
+
+    "Menu:Catalog": "Catalog",
+    "Menu:Catalog.Categories": "Categories",
+    "Menu:Catalog.Tools": "Tools",
+
+    "Catalog:EmptyState:NoResults": "No tools match your search or filters.",
+    "Catalog:EmptyState:NoCategories": "No categories match your search.",
+    "Catalog:EmptyState:NoInstances": "No instances registered yet.",
+    "Catalog:ShowRetired": "Show retired",
+    "Catalog:OnlyAvailable": "Available only",
+    "Catalog:ConcurrencyConflict": "This record was changed by someone else. Please reload and try again."
+  }
+}

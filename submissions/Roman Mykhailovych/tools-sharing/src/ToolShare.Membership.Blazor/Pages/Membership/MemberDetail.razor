@@ -1,0 +1,189 @@
+@page "/membership/members/{Id:guid}"
+@attribute [Authorize]
+@inherits MembershipComponentBase
+@inject IMemberAppService MemberAppService
+
+@if (_member is not null)
+{
+    <MudText Typo="Typo.h4" Class="mb-2">@_member.DisplayName</MudText>
+    <MudText Typo="Typo.body2" Class="mb-4">@_member.Email</MudText>
+
+    <MudPaper Class="pa-4 mb-4">
+        <MudGrid>
+            <MudItem xs="12" sm="3"><MudText Typo="Typo.caption">Status</MudText><MudText>@_member.Status</MudText></MudItem>
+            <MudItem xs="12" sm="3"><MudText Typo="Typo.caption">Role</MudText><MudText>@_member.Role</MudText></MudItem>
+            <MudItem xs="12" sm="3"><MudText Typo="Typo.caption">Rating</MudText><MudText>@_member.CurrentRating</MudText></MudItem>
+            <MudItem xs="12" sm="3"><MudText Typo="Typo.caption">Concurrent loan limit</MudText><MudText>@_member.EffectiveConcurrentLoanLimit</MudText></MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <MudStack Row="true" Spacing="2" Class="mb-4">
+        <AuthorizeView Policy="@MembershipPermissions.Members.ChangeRole" Context="changeRoleCtx">
+            <MudSelect T="CommunityRole" Label="Change role" Value="_selectedRole" ValueChanged="OnRoleSelected" Style="min-width:200px">
+                <MudSelectItem T="CommunityRole" Value="CommunityRole.Member">Member</MudSelectItem>
+                <MudSelectItem T="CommunityRole" Value="CommunityRole.Librarian">Librarian</MudSelectItem>
+                <MudSelectItem T="CommunityRole" Value="CommunityRole.Administrator">Administrator</MudSelectItem>
+            </MudSelect>
+        </AuthorizeView>
+
+        <AuthorizeView Policy="@MembershipPermissions.Members.Deactivate" Context="deactivateCtx">
+            @if (_member.Status == MembershipStatus.Active)
+            {
+                <MudButton Color="Color.Warning" Variant="Variant.Outlined" OnClick="OpenDeactivateDialog">Deactivate</MudButton>
+            }
+            else
+            {
+                <MudButton Color="Color.Success" Variant="Variant.Outlined" OnClick="ReactivateAsync">Reactivate</MudButton>
+            }
+        </AuthorizeView>
+
+        <AuthorizeView Policy="@MembershipPermissions.Members.AdjustRating" Context="adjustRatingCtx">
+            <MudButton Color="Color.Primary" Variant="Variant.Outlined" OnClick="OpenAdjustRatingDialog">Adjust rating</MudButton>
+        </AuthorizeView>
+    </MudStack>
+
+    <MudText Typo="Typo.h6" Class="mb-2">Standing history</MudText>
+    <StandingTimeline Entries="_history" />
+}
+
+<MudDialog @bind-Visible="_deactivateDialogOpen" Options="_dialogOptions">
+    <TitleContent>Deactivate member</TitleContent>
+    <DialogContent>
+        <MudTextField T="string" Label="Reason" @bind-Value="_deactivateReason" Required="true" Lines="3" MaxLength="512" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => _deactivateDialogOpen = false">Cancel</MudButton>
+        <MudButton Color="Color.Warning" Variant="Variant.Filled" OnClick="DeactivateAsync">Deactivate</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<MudDialog @bind-Visible="_adjustRatingDialogOpen" Options="_dialogOptions">
+    <TitleContent>Adjust rating</TitleContent>
+    <DialogContent>
+        <MudNumericField T="int" Label="Points" @bind-Value="_adjustRatingPoints" Min="-100" Max="100" />
+        <MudTextField T="string" Label="Reason" @bind-Value="_adjustRatingReason" Required="true" Lines="3" MaxLength="512" Class="mt-2" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => _adjustRatingDialogOpen = false">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="AdjustRatingAsync">Apply</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private readonly DialogOptions _dialogOptions = new() { CloseOnEscapeKey = true };
+
+    private MemberDetailDto? _member;
+    private IReadOnlyList<MemberStandingChangeDto> _history = Array.Empty<MemberStandingChangeDto>();
+    private CommunityRole _selectedRole;
+    private bool _deactivateDialogOpen;
+    private string _deactivateReason = string.Empty;
+    private bool _adjustRatingDialogOpen;
+    private int _adjustRatingPoints;
+    private string _adjustRatingReason = string.Empty;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _member = await MemberAppService.GetAsync(Id);
+        _selectedRole = _member.Role;
+        _history = await MemberAppService.GetStandingHistoryAsync(Id);
+    }
+
+    private async Task OnRoleSelected(CommunityRole role)
+    {
+        _selectedRole = role;
+        if (_member is null || role == _member.Role)
+        {
+            return;
+        }
+
+        var ok = await TryRunAsync(() => MemberAppService.ChangeRoleAsync(Id, new ChangeMemberRoleDto
+        {
+            Role = role,
+            ConcurrencyStamp = _member.ConcurrencyStamp
+        }));
+
+        if (ok)
+        {
+            await ReloadAsync();
+        }
+    }
+
+    private void OpenDeactivateDialog()
+    {
+        _deactivateReason = string.Empty;
+        _deactivateDialogOpen = true;
+    }
+
+    private async Task DeactivateAsync()
+    {
+        if (_member is null)
+        {
+            return;
+        }
+
+        var ok = await TryRunAsync(() => MemberAppService.DeactivateAsync(Id, new DeactivateMemberDto
+        {
+            Reason = _deactivateReason,
+            ConcurrencyStamp = _member.ConcurrencyStamp
+        }));
+
+        if (ok)
+        {
+            _deactivateDialogOpen = false;
+            await ReloadAsync();
+        }
+    }
+
+    private async Task ReactivateAsync()
+    {
+        if (_member is null)
+        {
+            return;
+        }
+
+        var ok = await TryRunAsync(() => MemberAppService.ReactivateAsync(Id, new ReactivateMemberDto
+        {
+            ConcurrencyStamp = _member.ConcurrencyStamp
+        }));
+
+        if (ok)
+        {
+            await ReloadAsync();
+        }
+    }
+
+    private void OpenAdjustRatingDialog()
+    {
+        _adjustRatingPoints = 0;
+        _adjustRatingReason = string.Empty;
+        _adjustRatingDialogOpen = true;
+    }
+
+    private async Task AdjustRatingAsync()
+    {
+        if (_member is null)
+        {
+            return;
+        }
+
+        var ok = await TryRunAsync(() => MemberAppService.AdjustRatingAsync(Id, new AdjustMemberRatingDto
+        {
+            Points = _adjustRatingPoints,
+            Reason = _adjustRatingReason,
+            ConcurrencyStamp = _member.ConcurrencyStamp
+        }));
+
+        if (ok)
+        {
+            _adjustRatingDialogOpen = false;
+            await ReloadAsync();
+        }
+    }
+}

@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\..\common.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <RootNamespace>ToolShare</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ToolShare.Domain\ToolShare.Domain.csproj" />
+    <ProjectReference Include="..\ToolShare.Application.Contracts\ToolShare.Application.Contracts.csproj" />
+    <ProjectReference Include="..\ToolShare.Catalog.Application.Contracts\ToolShare.Catalog.Application.Contracts.csproj" />
+    <ProjectReference Include="..\ToolShare.Membership.Application.Contracts\ToolShare.Membership.Application.Contracts.csproj" />
+    <ProjectReference Include="..\ToolShare.Lending.Application.Contracts\ToolShare.Lending.Application.Contracts.csproj" />
+    <ProjectReference Include="..\ToolShare.Notifications.Application.Contracts\ToolShare.Notifications.Application.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Volo.Abp.Account.Application" Version="10.6.0" />
+    <PackageReference Include="Volo.Abp.Identity.Application" Version="10.6.0" />
+    <PackageReference Include="Volo.Abp.PermissionManagement.Application" Version="10.6.0" />
+    <PackageReference Include="Volo.Abp.TenantManagement.Application" Version="10.6.0" />
+    <PackageReference Include="Volo.Abp.FeatureManagement.Application" Version="10.6.0" />
+    <PackageReference Include="Volo.Abp.SettingManagement.Application" Version="10.6.0" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,57 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ToolShare.Application.Contracts/ToolShare.Application.Contracts.csproj" />
+    <Project Path="src/ToolShare.Application/ToolShare.Application.csproj" />
+    
+    
+    <Project Path="src/ToolShare.Blazor/ToolShare.Blazor.csproj" />
+    <Project Path="src/ToolShare.Catalog.Application.Contracts/ToolShare.Catalog.Application.Contracts.csproj" />
+    <Project Path="src/ToolShare.Catalog.Application/ToolShare.Catalog.Application.csproj" />
+    <Project Path="src/ToolShare.Catalog.Blazor/ToolShare.Catalog.Blazor.csproj" />
+    <Project Path="src/ToolShare.Catalog.Domain.Shared/ToolShare.Catalog.Domain.Shared.csproj" />
+    <Project Path="src/ToolShare.Catalog.Domain/ToolShare.Catalog.Domain.csproj" />
+    <Project Path="src/ToolShare.Catalog.EntityFrameworkCore/ToolShare.Catalog.EntityFrameworkCore.csproj" />
+
+    <Project Path="src/ToolShare.DbMigrator/ToolShare.DbMigrator.csproj" />
+    <Project Path="src/ToolShare.Domain.Shared/ToolShare.Domain.Shared.csproj" />
+    <Project Path="src/ToolShare.Domain/ToolShare.Domain.csproj" />
+    <Project Path="src/ToolShare.EntityFrameworkCore/ToolShare.EntityFrameworkCore.csproj" />
+
+
+    <Project Path="src/ToolShare.HttpApi/ToolShare.HttpApi.csproj" />
+    <Project Path="src/ToolShare.Lending.Application.Contracts/ToolShare.Lending.Application.Contracts.csproj" />
+    <Project Path="src/ToolShare.Lending.Application/ToolShare.Lending.Application.csproj" />
+    <Project Path="src/ToolShare.Lending.Blazor/ToolShare.Lending.Blazor.csproj" />
+    <Project Path="src/ToolShare.Lending.Domain.Shared/ToolShare.Lending.Domain.Shared.csproj" />
+    <Project Path="src/ToolShare.Lending.Domain/ToolShare.Lending.Domain.csproj" />
+    <Project Path="src/ToolShare.Lending.EntityFrameworkCore/ToolShare.Lending.EntityFrameworkCore.csproj" />
+    <Project Path="src/ToolShare.Membership.Application.Contracts/ToolShare.Membership.Application.Contracts.csproj" />
+    <Project Path="src/ToolShare.Membership.Application/ToolShare.Membership.Application.csproj" />
+    <Project Path="src/ToolShare.Membership.Blazor/ToolShare.Membership.Blazor.csproj" />
+    <Project Path="src/ToolShare.Membership.Domain.Shared/ToolShare.Membership.Domain.Shared.csproj" />
+    <Project Path="src/ToolShare.Membership.Domain/ToolShare.Membership.Domain.csproj" />
+    <Project Path="src/ToolShare.Membership.EntityFrameworkCore/ToolShare.Membership.EntityFrameworkCore.csproj" />
+    <Project Path="src/ToolShare.Notifications.Application.Contracts/ToolShare.Notifications.Application.Contracts.csproj" />
+    <Project Path="src/ToolShare.Notifications.Application/ToolShare.Notifications.Application.csproj" />
+    <Project Path="src/ToolShare.Notifications.Blazor/ToolShare.Notifications.Blazor.csproj" />
+    <Project Path="src/ToolShare.Notifications.Domain.Shared/ToolShare.Notifications.Domain.Shared.csproj" />
+    <Project Path="src/ToolShare.Notifications.Domain/ToolShare.Notifications.Domain.csproj" />
+    <Project Path="src/ToolShare.Notifications.EntityFrameworkCore/ToolShare.Notifications.EntityFrameworkCore.csproj" />
+
+  </Folder>
+  <Folder Name="/test/">
+    <Project Path="test/ToolShare.Application.Tests/ToolShare.Application.Tests.csproj" />
+    <Project Path="test/ToolShare.Catalog.Application.Tests/ToolShare.Catalog.Application.Tests.csproj" />
+    <Project Path="test/ToolShare.Catalog.Domain.Tests/ToolShare.Catalog.Domain.Tests.csproj" />
+    <Project Path="test/ToolShare.Domain.Tests/ToolShare.Domain.Tests.csproj" />
+    <Project Path="test/ToolShare.EntityFrameworkCore.Tests/ToolShare.EntityFrameworkCore.Tests.csproj" />
+    <Project Path="test/ToolShare.Lending.Application.Tests/ToolShare.Lending.Application.Tests.csproj" />
+    <Project Path="test/ToolShare.Lending.Domain.Tests/ToolShare.Lending.Domain.Tests.csproj" />
+    <Project Path="test/ToolShare.Membership.Application.Tests/ToolShare.Membership.Application.Tests.csproj" />
+    <Project Path="test/ToolShare.Membership.Domain.Tests/ToolShare.Membership.Domain.Tests.csproj" />
+    <Project Path="test/ToolShare.Notifications.Application.Tests/ToolShare.Notifications.Application.Tests.csproj" />
+    <Project Path="test/ToolShare.Notifications.Domain.Tests/ToolShare.Notifications.Domain.Tests.csproj" />
+    <Project Path="test/ToolShare.TestBase/ToolShare.TestBase.csproj" />
+
+  </Folder>
+</Solution>

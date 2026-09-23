@@ -1,0 +1,152 @@
+@page "/catalog/categories"
+@using Volo.Abp.Application.Dtos
+@inherits CatalogComponentBase
+@inject ICategoryAppService CategoryAppService
+
+<MudText Typo="Typo.h4" Class="mb-4">@L["Menu:Catalog.Categories"]</MudText>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudGrid AlignItems="Center.Baseline">
+        <MudItem xs="12" sm="6">
+            <MudTextField T="string" Label="Search" Value="_filter" ValueChanged="OnFilterChanged" Immediate="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+        </MudItem>
+        <MudItem xs="12" sm="6" Class="d-flex justify-end">
+            <AuthorizeView Policy="@CatalogPermissions.Categories.Create">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog">
+                    New category
+                </MudButton>
+            </AuthorizeView>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudTable @ref="_table" ServerData="ServerReload" Hover="true" Dense="true">
+    <HeaderContent>
+        <MudTh>Name</MudTh>
+        <MudTh>Description</MudTh>
+        <MudTh>Tools</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Name">@context.Name</MudTd>
+        <MudTd DataLabel="Description">@context.Description</MudTd>
+        <MudTd DataLabel="Tools">@context.ToolCount</MudTd>
+        <MudTd DataLabel="">
+            <AuthorizeView Policy="@CatalogPermissions.Categories.Edit" Context="authState">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="() => OpenEditDialog(context)" />
+            </AuthorizeView>
+            <AuthorizeView Policy="@CatalogPermissions.Categories.Delete" Context="authState">
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" OnClick="() => DeleteAsync(context)" />
+            </AuthorizeView>
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <CatalogEmptyState Text="@L["Catalog:EmptyState:NoCategories"]" Icon="@Icons.Material.Filled.SearchOff" />
+    </NoRecordsContent>
+    <PagerContent>
+        <MudTablePager />
+    </PagerContent>
+</MudTable>
+
+<MudDialog @bind-Visible="_dialogOpen" Options="_dialogOptions">
+    <TitleContent>@(_editingId is null ? "New category" : "Edit category")</TitleContent>
+    <DialogContent>
+        <MudTextField T="string" Label="Name" @bind-Value="_name" Required="true" MaxLength="128" />
+        <MudTextField T="string" Label="Description" @bind-Value="_description" Lines="3" MaxLength="1024" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => _dialogOpen = false">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private MudTable<CategoryDto> _table = default!;
+    private string _filter = string.Empty;
+    private readonly DialogOptions _dialogOptions = new() { CloseOnEscapeKey = true };
+
+    private bool _dialogOpen;
+    private Guid? _editingId;
+    private string _name = string.Empty;
+    private string? _description;
+    private string _concurrencyStamp = string.Empty;
+
+    private async Task<TableData<CategoryDto>> ServerReload(TableState state, CancellationToken cancellationToken)
+    {
+        var input = new GetCategoryListInput
+        {
+            Filter = _filter,
+            SkipCount = state.Page * state.PageSize,
+            MaxResultCount = state.PageSize,
+            Sorting = state.SortLabel
+        };
+
+        var result = await CategoryAppService.GetListAsync(input);
+        return new TableData<CategoryDto> { Items = result.Items, TotalItems = (int)result.TotalCount };
+    }
+
+    private async Task OnFilterChanged(string value)
+    {
+        _filter = value;
+        await _table.ReloadServerData();
+    }
+
+    private void OpenCreateDialog()
+    {
+        _editingId = null;
+        _name = string.Empty;
+        _description = null;
+        _concurrencyStamp = string.Empty;
+        _dialogOpen = true;
+    }
+
+    private void OpenEditDialog(CategoryDto category)
+    {
+        _editingId = category.Id;
+        _name = category.Name;
+        _description = category.Description;
+        _concurrencyStamp = category.ConcurrencyStamp;
+        _dialogOpen = true;
+    }
+
+    private async Task SaveAsync()
+    {
+        var ok = await TryRunAsync(async () =>
+        {
+            if (_editingId is null)
+            {
+                await CategoryAppService.CreateAsync(new CreateCategoryDto { Name = _name, Description = _description });
+            }
+            else
+            {
+                await CategoryAppService.UpdateAsync(_editingId.Value, new UpdateCategoryDto
+                {
+                    Name = _name,
+                    Description = _description,
+                    ConcurrencyStamp = _concurrencyStamp
+                });
+            }
+        });
+
+        if (ok)
+        {
+            _dialogOpen = false;
+            await _table.ReloadServerData();
+        }
+    }
+
+    private async Task DeleteAsync(CategoryDto category)
+    {
+        var confirmed = await Message.Confirm($"Delete category '{category.Name}'?", "Confirm delete");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        var ok = await TryRunAsync(() => CategoryAppService.DeleteAsync(category.Id));
+        if (ok)
+        {
+            await _table.ReloadServerData();
+        }
+    }
+}

@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\..\common.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <RootNamespace>ToolShare.Notifications</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ToolShare.Notifications.Domain\ToolShare.Notifications.Domain.csproj" />
+    <ProjectReference Include="..\ToolShare.Notifications.Application.Contracts\ToolShare.Notifications.Application.Contracts.csproj" />
+    <!-- Notifications calls into both modules' published contracts (research
+         R4, notifications-app-services.md) to resolve display content. -->
+    <ProjectReference Include="..\ToolShare.Catalog.Application.Contracts\ToolShare.Catalog.Application.Contracts.csproj" />
+    <ProjectReference Include="..\ToolShare.Membership.Application.Contracts\ToolShare.Membership.Application.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Volo.Abp.Ddd.Application" Version="10.6.0" />
+    <!-- ILocalEventHandler<T> — the two generators (research R4) subscribe to
+         Lending's and Membership's published events. -->
+    <PackageReference Include="Volo.Abp.EventBus" Version="10.6.0" />
+    <!-- Email delivery runs as a queued background job, not inline (research
+         R2) — already a transitive dependency host-wide, referenced
+         explicitly since this is the first feature to use its types
+         directly. -->
+    <PackageReference Include="Volo.Abp.BackgroundJobs" Version="10.6.0" />
+    <PackageReference Include="Volo.Abp.Emailing" Version="10.6.0" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,111 @@
+@page "/membership/members"
+@attribute [Authorize]
+@using Volo.Abp.Application.Dtos
+@inherits MembershipComponentBase
+@inject IMemberAppService MemberAppService
+
+<MudText Typo="Typo.h4" Class="mb-4">@L["Menu:Membership.Members"]</MudText>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudGrid AlignItems="Center.Baseline">
+        <MudItem xs="12" sm="4">
+            <MudTextField T="string" Label="Search" Value="_filter" ValueChanged="OnFilterChanged" Immediate="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudSelect T="MembershipStatus?" Label="Status" Value="_status" ValueChanged="OnStatusChanged" Clearable="true">
+                <MudSelectItem T="MembershipStatus?" Value="@((MembershipStatus?)MembershipStatus.Active)">Active</MudSelectItem>
+                <MudSelectItem T="MembershipStatus?" Value="@((MembershipStatus?)MembershipStatus.Deactivated)">Deactivated</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudSelect T="CommunityRole?" Label="Role" Value="_role" ValueChanged="OnRoleChanged" Clearable="true">
+                <MudSelectItem T="CommunityRole?" Value="@((CommunityRole?)CommunityRole.Member)">Member</MudSelectItem>
+                <MudSelectItem T="CommunityRole?" Value="@((CommunityRole?)CommunityRole.Librarian)">Librarian</MudSelectItem>
+                <MudSelectItem T="CommunityRole?" Value="@((CommunityRole?)CommunityRole.Administrator)">Administrator</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="2" Class="d-flex justify-end">
+            <AuthorizeView Policy="@MembershipPermissions.Members.Enrol">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="OpenEnrolModal">
+                    Enrol
+                </MudButton>
+            </AuthorizeView>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudTable @ref="_table" ServerData="ServerReload" Hover="true" Dense="true">
+    <HeaderContent>
+        <MudTh>Name</MudTh>
+        <MudTh>Email</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh>Role</MudTh>
+        <MudTh>Rating</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Name">
+            <MudLink Href="@($"/membership/members/{context.Id}")">@context.DisplayName</MudLink>
+        </MudTd>
+        <MudTd DataLabel="Email">@context.Email</MudTd>
+        <MudTd DataLabel="Status">@context.Status</MudTd>
+        <MudTd DataLabel="Role">@context.Role</MudTd>
+        <MudTd DataLabel="Rating">@context.CurrentRating</MudTd>
+        <MudTd DataLabel=""></MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText Align="Align.Center" Class="pa-4">No members found.</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <MudTablePager />
+    </PagerContent>
+</MudTable>
+
+<EnrolMemberModal @bind-IsOpen="_enrolModalOpen" OnSaved="() => _table.ReloadServerData()" />
+
+@code {
+    private MudTable<MemberListItemDto> _table = default!;
+    private string _filter = string.Empty;
+    private MembershipStatus? _status;
+    private CommunityRole? _role;
+    private bool _enrolModalOpen;
+
+    private async Task<TableData<MemberListItemDto>> ServerReload(TableState state, CancellationToken cancellationToken)
+    {
+        var input = new GetMemberListInput
+        {
+            Filter = _filter,
+            Status = _status,
+            Role = _role,
+            SkipCount = state.Page * state.PageSize,
+            MaxResultCount = state.PageSize,
+            Sorting = state.SortLabel
+        };
+
+        var result = await MemberAppService.GetListAsync(input);
+        return new TableData<MemberListItemDto> { Items = result.Items, TotalItems = (int)result.TotalCount };
+    }
+
+    private async Task OnFilterChanged(string value)
+    {
+        _filter = value;
+        await _table.ReloadServerData();
+    }
+
+    private async Task OnStatusChanged(MembershipStatus? value)
+    {
+        _status = value;
+        await _table.ReloadServerData();
+    }
+
+    private async Task OnRoleChanged(CommunityRole? value)
+    {
+        _role = value;
+        await _table.ReloadServerData();
+    }
+
+    private void OpenEnrolModal()
+    {
+        _enrolModalOpen = true;
+    }
+}

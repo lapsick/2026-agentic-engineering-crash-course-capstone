@@ -1,0 +1,113 @@
+@page "/lending/reserve/{ToolInstanceId:guid}"
+@attribute [Authorize]
+@using ToolShare.Catalog.ToolInstances
+@inherits LendingComponentBase
+@inject IReservationAppService ReservationAppService
+@inject IToolInstanceLookupAppService ToolInstanceLookupAppService
+@inject NavigationManager NavigationManager
+
+<MudText Typo="Typo.h4" Class="mb-4">Reserve</MudText>
+
+@if (_instance is not null)
+{
+    <MudPaper Class="pa-4 mb-4">
+        <MudText Typo="Typo.h6">@_instance.ToolName</MudText>
+        <MudText Typo="Typo.caption">@_instance.SerialNumber — @_instance.CategoryName</MudText>
+    </MudPaper>
+
+    <MudPaper Class="pa-4">
+        <MudDatePicker Label="Start date" @bind-Date="_startDate" />
+        <MudDatePicker Label="End date" @bind-Date="_endDate" />
+
+        <MudButtonGroup Class="mt-4">
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="ReserveAsync">Reserve</MudButton>
+            <MudButton OnClick="GoBackToTool">Cancel</MudButton>
+        </MudButtonGroup>
+
+        @if (_offerWaitlist)
+        {
+            <MudAlert Severity="Severity.Info" Class="mt-4">
+                This instance is already reserved for part of that range.
+                <MudButton Size="Size.Small" OnClick="JoinWaitlistAsync">Join the waitlist instead</MudButton>
+            </MudAlert>
+        }
+    </MudPaper>
+}
+else
+{
+    <MudAlert Severity="Severity.Warning">This instance could not be found.</MudAlert>
+}
+
+@code {
+    [Parameter] public Guid ToolInstanceId { get; set; }
+
+    private ToolInstanceLookupDto? _instance;
+    private DateTime? _startDate = DateTime.Today.AddDays(1);
+    private DateTime? _endDate = DateTime.Today.AddDays(4);
+    private bool _offerWaitlist;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _instance = await ToolInstanceLookupAppService.FindAsync(ToolInstanceId);
+    }
+
+    private async Task ReserveAsync()
+    {
+        _offerWaitlist = false;
+
+        if (_startDate is null || _endDate is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await ReservationAppService.CreateAsync(new CreateReservationDto
+            {
+                ToolInstanceId = ToolInstanceId,
+                StartDate = DateOnly.FromDateTime(_startDate.Value),
+                EndDate = DateOnly.FromDateTime(_endDate.Value)
+            });
+
+            NavigationManager.NavigateTo("/lending/my-reservations");
+        }
+        catch (BusinessException businessException) when (businessException.Code == LendingDomainErrorCodes.InstanceAlreadyReservedForRange)
+        {
+            _offerWaitlist = true;
+        }
+        catch (BusinessException businessException) when (!string.IsNullOrEmpty(businessException.Code) && businessException.Data.Count > 0)
+        {
+            var args = businessException.Data.Values.Cast<object>().ToArray();
+            await Message.Error(L[businessException.Code, args]);
+        }
+        catch (BusinessException businessException) when (!string.IsNullOrEmpty(businessException.Code))
+        {
+            await Message.Error(L[businessException.Code]);
+        }
+        catch (Exception ex)
+        {
+            await HandleErrorAsync(ex);
+        }
+    }
+
+    private void GoBackToTool()
+    {
+        if (_instance is not null)
+        {
+            NavigationManager.NavigateTo($"/catalog/tools/{_instance.ToolId}");
+        }
+    }
+
+    private async Task JoinWaitlistAsync()
+    {
+        var ok = await TryRunAsync(() => ReservationAppService.JoinWaitlistAsync(new JoinWaitlistDto
+        {
+            ToolInstanceId = ToolInstanceId
+        }));
+
+        if (ok)
+        {
+            NavigationManager.NavigateTo("/lending/my-reservations");
+        }
+    }
+}
