@@ -77,6 +77,22 @@ Not a test, but part of verifying module boundaries (Principle II):
 pwsh scripts/check-module-boundaries.ps1
 ```
 
+It scans `src/` `ProjectReference`s and fails if a project references another module's
+`*.Domain`/`*.EntityFrameworkCore`. Allowed exceptions: `ToolShare.Blazor` / `ToolShare.DbMigrator`
+(composition roots) and `ToolShare.EntityFrameworkCore` → module `*.EntityFrameworkCore` only (the
+consolidated `ToolShareDbContext`). It must be green alongside the tests.
+
+### Automated fix loop
+
+`scripts/agent-loop.ps1` runs `dotnet test <project>` plus the boundary audit and, while either is
+red, hands the failures to a headless `claude -p` agent that fixes one failure per iteration in
+`src/` — until green, `-MaxIterations`, no progress, or a violation (the agent touched `test/` or
+the audit script). Logs go to `loop-runs/<timestamp>/run.md`.
+
+```bash
+pwsh scripts/agent-loop.ps1 -Project test/ToolShare.Lending.Domain.Tests/ToolShare.Lending.Domain.Tests.csproj -MaxIterations 5
+```
+
 ### What happens under the hood of an integration run
 
 1. xUnit creates the module's **collection fixture** (`<Module>ApplicationTestFixture`, wired via

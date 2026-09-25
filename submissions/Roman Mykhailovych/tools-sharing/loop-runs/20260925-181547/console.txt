@@ -1,0 +1,36 @@
+Agent loop 20260925-181547 — test/ToolShare.Lending.Domain.Tests/ToolShare.Lending.Domain.Tests.csproj
+Log: D:\Github\2026-agentic-engineering-crash-course-capstone\submissions\Roman Mykhailovych\tools-sharing\loop-runs\20260925-181547\run.md
+
+=== Iteration 1 — running tests
+    RED: 41 total, failed: 4 (5.2 s)
+      x ToolShare.Lending.Loans.LoanOverdueCalculationTests.A_loan_is_not_overdue_on_its_planned_return_date
+      x ToolShare.Lending.Loans.LoanLifecycleTests.IsWorsened_compares_every_pair_on_the_four_level_scale(atCheckout: New, atReturn: New, expectedWorsened: False)
+      x ToolShare.Lending.Maintenance.MaintenanceRequestLifecycleTests.Close_with_exactly_zero_cost_is_valid
+      x ToolShare.Lending.Loans.LoanOverdueCalculationTests.The_stored_IsOverdue_flag_does_not_make_an_open_loan_report_as_overdue_before_its_date
+    agent (sonnet) working...
+    agent: 4 turns, $0.1483, 12.8 s
+    FIXED: src/ToolShare.Lending.Domain/Loans/Loan.cs — `IsOverdueAsOf` used `PlannedReturnDate <= asOf`, so a loan counted as overdue on its planned return date. I changed it to `<`, so a loan becomes overdue the day after, as the doc comment and test specify. I did not build or run the tests.
+      ~ src/ToolShare.Lending.Domain/Loans/Loan.cs
+
+=== Iteration 2 — running tests
+    RED: 41 total, failed: 2 (4.9 s)
+      x ToolShare.Lending.Loans.LoanLifecycleTests.IsWorsened_compares_every_pair_on_the_four_level_scale(atCheckout: New, atReturn: New, expectedWorsened: False)
+      x ToolShare.Lending.Maintenance.MaintenanceRequestLifecycleTests.Close_with_exactly_zero_cost_is_valid
+    agent (sonnet) working...
+    agent: 4 turns, $0.1527, 15.3 s
+    FIXED: src/ToolShare.Lending.Domain/Loans/Loan.cs — `IsWorsened()` used `>=` so an unchanged condition counted as worsened; changed to strict `>`.
+      ~ src/ToolShare.Lending.Domain/Loans/Loan.cs
+
+=== Iteration 3 — running tests
+    RED: 41 total, failed: 1 (5.1 s)
+      x ToolShare.Lending.Maintenance.MaintenanceRequestLifecycleTests.Close_with_exactly_zero_cost_is_valid
+    agent (sonnet) working...
+    agent: 4 turns, $0.1433, 12.1 s
+    FIXED: src/ToolShare.Lending.Domain/Maintenance/MaintenanceRequest.cs — the cost guard in `Close` used `<= 0` and rejected a zero cost; changed it to `< 0` so zero is accepted while null and negative costs still throw.
+      ~ src/ToolShare.Lending.Domain/Maintenance/MaintenanceRequest.cs
+
+=== Iteration 4 — running tests
+    GREEN: 41/41 passed (5.5 s)
+
+Status: GREEN — 4 test runs, 3 agent iterations, total cost $0.4443
+Log: D:\Github\2026-agentic-engineering-crash-course-capstone\submissions\Roman Mykhailovych\tools-sharing\loop-runs\20260925-181547\run.md

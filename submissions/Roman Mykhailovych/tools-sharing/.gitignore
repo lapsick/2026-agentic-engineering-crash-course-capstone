@@ -269,6 +269,3 @@ src/ToolShare.DbMigrator/Logs/*
 
 # ABP Studio
 **/.abpstudio/
-
-# Claude Code hook action log
-.agent-log/
