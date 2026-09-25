@@ -48,6 +48,22 @@ services:
     ports:
       - "8080:8080"
 
+  # Standalone .NET Aspire Dashboard — an OTLP receiver plus UI for metrics,
+  # structured logs and traces. Used locally to observe Claude Code's own
+  # OpenTelemetry export (CLAUDE_CODE_ENABLE_TELEMETRY, see README). Telemetry
+  # is kept in memory only and is lost when the container restarts.
+  # UNSECURED_ALLOW_ANONYMOUS disables both the UI login token and OTLP auth —
+  # local-development only, never expose these ports beyond localhost.
+  aspire-dashboard:
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:latest
+    container_name: toolshare-aspire-dashboard
+    environment:
+      DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"
+    ports:
+      - "18888:18888" # dashboard UI
+      - "4317:18889"  # OTLP/gRPC
+      - "4318:18890"  # OTLP/HTTP
+
 volumes:
   toolshare-postgres-data:
   toolshare-blobs:

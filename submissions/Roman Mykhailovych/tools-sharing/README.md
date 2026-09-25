@@ -92,6 +92,39 @@ after adding a new migration):
 docker compose run --rm --entrypoint "dotnet ToolShare.DbMigrator.dll" app
 ```
 
+### Observing Claude Code with the Aspire Dashboard
+
+The compose file also runs a standalone [.NET Aspire Dashboard](https://learn.microsoft.com/dotnet/aspire/fundamentals/dashboard/standalone)
+(`aspire-dashboard` service) that receives OpenTelemetry over OTLP. It is used to watch Claude Code's
+own telemetry — token usage, cost, lines changed, commits, tool results and permission decisions —
+while working on this repo. Start just the dashboard with:
+
+```bash
+docker compose up -d aspire-dashboard
+```
+
+The UI is at `http://localhost:18888`, and OTLP is accepted on `localhost:4317` (gRPC) and
+`localhost:4318` (HTTP). Then enable export in your own, uncommitted `.claude/settings.local.json`
+and start a new Claude Code session:
+
+```json
+{
+  "env": {
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "1",
+    "OTEL_METRICS_EXPORTER": "otlp",
+    "OTEL_LOGS_EXPORTER": "otlp",
+    "OTEL_EXPORTER_OTLP_PROTOCOL": "grpc",
+    "OTEL_EXPORTER_OTLP_ENDPOINT": "http://localhost:4317",
+    "OTEL_METRIC_EXPORT_INTERVAL": "10000",
+    "OTEL_RESOURCE_ATTRIBUTES": "project=toolshare"
+  }
+}
+```
+
+Data appears under the `claude-code` resource: counters under **Metrics**, per-event records under
+**Structured logs**. Prompt text is not exported unless `OTEL_LOG_USER_PROMPTS=1` is also set. The
+dashboard keeps everything in memory and runs with authentication disabled — local use only.
+
 ### Solution structure
 
 This is a layered monolith application that consists of the following applications:

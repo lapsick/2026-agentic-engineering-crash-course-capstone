@@ -21,3 +21,11 @@ services:
       # Change the host-side (left) port here if 5432 is already taken
       # locally, e.g. "15432:5432".
       - "5432:5432"
+
+  aspire-dashboard:
+    ports:
+      # Change the host-side (left) ports here if they are already taken
+      # locally — and point OTEL_EXPORTER_OTLP_ENDPOINT at the new OTLP port.
+      - "18888:18888"
+      - "4317:18889"
+      - "4318:18890"
