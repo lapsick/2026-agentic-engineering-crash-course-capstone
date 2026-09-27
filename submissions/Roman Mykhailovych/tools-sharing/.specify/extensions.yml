@@ -19,3 +19,14 @@ hooks:
       prompt: Run the test + module-boundary gate on this feature's test projects
       description: Runs scripts/fix-until-green.ps1 on every test project in tasks.md; zero agent cost when already green, bounded src/-only fixing when red
       condition: null
+    # Then an independent code review (maker != checker): a read-only subagent
+    # checks the diff against the constitution and spec.md requirement IDs.
+    # Skipped automatically when the gate above failed. Spec Kit has no
+    # built-in code-review step (checked through 1.0.12).
+    - extension: code-review
+      command: speckit.code.review
+      enabled: true
+      optional: false
+      prompt: Review this feature's changes against the constitution and spec before commit/PR
+      description: Runs the toolshare-reviewer subagent (.claude/agents) on the diff vs main and saves the report under reviews/
+      condition: null

@@ -14,7 +14,14 @@ generic "Completion validation → Validate that tests pass" step of that (frame
   them exactly once. Only confirm the test tasks exist and are marked `[X]`, then dispatch the hook.
 - Report the gate's verdict (PASS/FAIL per project) as the completion status, not your own.
 
+A second `after_implement` hook, `speckit.code.review` → `/speckit-code-review`, runs after the
+gate: an independent review by the read-only `toolshare-reviewer` subagent (`.claude/agents/`),
+saved under `reviews/`. It is skipped when the gate failed and never re-runs the tests. Don't
+self-review the implementation in the implementing context instead — the point is maker ≠ checker.
+Before commit/PR the order is: `/speckit-implement` → gate → review → fix findings → gate → review.
+
 Why this lives here and not in `.claude/skills/speckit-implement/SKILL.md`: that file is owned by
 Spec Kit (listed with a hash in `.specify/integrations/claude.manifest.json`) and is overwritten on
-upgrade. `.claude/rules/`, `.specify/extensions.yml`, and `.claude/skills/speckit-green-gate/` are
-not in any Spec Kit manifest, so they survive upgrades.
+upgrade. `.claude/rules/`, `.claude/agents/`, `.specify/extensions.yml`,
+`.claude/skills/speckit-green-gate/`, and `.claude/skills/speckit-code-review/` are not in any Spec
+Kit manifest, so they survive upgrades.
