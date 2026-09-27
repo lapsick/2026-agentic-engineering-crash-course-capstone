@@ -68,8 +68,10 @@ dotnet test test/ToolShare.Lending.Domain.Tests/ToolShare.Lending.Domain.Tests.c
 ```
 
 Rough timings: a domain project ~5–10 s; one application test class ~30–40 s (mostly container
-start + template migration). While working on a feature, run the narrowest filter; before
-finishing, run the whole affected project, and for cross-module changes `dotnet test ToolShare.slnx`.
+start + template migration). While working on a feature, run the narrowest filter. Inside
+`/speckit-implement` the final full run belongs to the gate — see `.claude/rules/speckit-gate.md`.
+Outside Spec Kit, run the whole affected project before finishing, and for cross-module changes
+`dotnet test ToolShare.slnx`.
 
 Not a test, but part of verifying module boundaries (Principle II):
 
@@ -84,14 +86,21 @@ consolidated `ToolShareDbContext`). It must be green alongside the tests.
 
 ### Automated fix loop
 
-`scripts/agent-loop.ps1` runs `dotnet test <project>` plus the boundary audit and, while either is
+`scripts/fix-until-green.ps1` runs `dotnet test <project>` plus the boundary audit and, while either is
 red, hands the failures to a headless `claude -p` agent that fixes one failure per iteration in
 `src/` — until green, `-MaxIterations`, no progress, or a violation (the agent touched `test/` or
-the audit script). Logs go to `loop-runs/<timestamp>/run.md`.
+the audit script). Logs go to `green-runs/<timestamp>/run.log`.
 
 ```bash
-pwsh scripts/agent-loop.ps1 -Project test/ToolShare.Lending.Domain.Tests/ToolShare.Lending.Domain.Tests.csproj -MaxIterations 5
+pwsh scripts/fix-until-green.ps1 -Project test/ToolShare.Lending.Domain.Tests/ToolShare.Lending.Domain.Tests.csproj -MaxIterations 5
 ```
+
+`scripts/speckit-gate.ps1` runs that loop on every test project referenced in the active feature's
+`tasks.md` (Domain projects first). It is the mandatory `after_implement` hook in
+`.specify/extensions.yml` (`speckit.green.gate` → `/speckit-green-gate`), so every `/speckit-implement`
+ends with an exit-code-based gate instead of the implementing agent's self-report. Already green =
+no agent call, $0. `-NoFix` = check only. Exit 5 = Docker not running (no agent is invoked for
+environment failures).
 
 ### What happens under the hood of an integration run
 

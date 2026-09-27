@@ -1,0 +1,21 @@
+# Spec Kit extension hooks — read by the speckit-* commands (see e.g.
+# .claude/skills/speckit-implement/SKILL.md, "Mandatory Post-Execution Hooks").
+# A hook's `command` maps to a slash command by replacing dots with hyphens:
+# speckit.green.gate -> /speckit-green-gate (.claude/skills/speckit-green-gate).
+installed: []
+
+settings:
+  auto_execute_hooks: true
+
+hooks:
+  after_implement:
+    # Independent post-implement gate: tests + Constitution II module-boundary
+    # audit decide "done" by exit code (scripts/speckit-gate.ps1 ->
+    # scripts/fix-until-green.ps1), instead of /speckit-implement's self-report.
+    - extension: green-gate
+      command: speckit.green.gate
+      enabled: true
+      optional: false
+      prompt: Run the test + module-boundary gate on this feature's test projects
+      description: Runs scripts/fix-until-green.ps1 on every test project in tasks.md; zero agent cost when already green, bounded src/-only fixing when red
+      condition: null
