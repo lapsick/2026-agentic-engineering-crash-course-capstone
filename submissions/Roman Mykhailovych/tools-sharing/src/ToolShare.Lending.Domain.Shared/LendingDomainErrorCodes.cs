@@ -52,4 +52,16 @@ public static class LendingDomainErrorCodes
     /// that period" — a wrong answer to a question that was never valid.
     /// </summary>
     public const string InvalidReportDateRange = "Lending:InvalidReportDateRange";
+
+    /// <summary>008 MAINT-05 (FR-002): an out-of-band maintenance report without a reason.</summary>
+    public const string MaintenanceReasonRequired = "Lending:MaintenanceReasonRequired";
+
+    /// <summary>008 MAINT-06 (FR-004): an out-of-band maintenance report for a retired instance.</summary>
+    public const string InstanceRetired = "Lending:InstanceRetired";
+
+    /// <summary>008 MAINT-06 (FR-004): an out-of-band maintenance report for an instance on loan — its condition is recorded at return instead.</summary>
+    public const string InstanceOnLoanRecordAtReturn = "Lending:InstanceOnLoanRecordAtReturn";
+
+    /// <summary>008 MAINT-07 (FR-003): the observed condition is better than the instance's current one. Carries <c>current</c> in its data.</summary>
+    public const string ObservedConditionBetterThanCurrent = "Lending:ObservedConditionBetterThanCurrent";
 }

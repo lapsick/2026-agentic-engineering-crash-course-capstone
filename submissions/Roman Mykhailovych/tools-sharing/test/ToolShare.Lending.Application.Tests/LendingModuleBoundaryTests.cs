@@ -112,6 +112,41 @@ public class LendingModuleBoundaryTests
         violations.ShouldBeEmpty(violations.Count == 0 ? string.Empty : string.Join(Environment.NewLine, violations));
     }
 
+    /// <summary>
+    /// 008 research R8: Catalog's UI reaches Lending's pages (Reserve, Report
+    /// damage) by URL only — it must never take a project reference on, or
+    /// import a namespace of, any Lending project (Constitution II).
+    /// </summary>
+    [Fact]
+    public void Catalog_Blazor_does_not_reference_or_import_any_Lending_project()
+    {
+        var catalogBlazor = Path.Combine(FindRepositoryRoot(), "src", "ToolShare.Catalog.Blazor");
+        var violations = new List<string>();
+
+        foreach (var csproj in Directory.GetFiles(catalogBlazor, "*.csproj"))
+        {
+            if (Regex.IsMatch(File.ReadAllText(csproj), @"ProjectReference\s+Include=""[^""]*ToolShare\.Lending\."))
+            {
+                violations.Add($"{csproj}: project reference to a Lending project");
+            }
+        }
+
+        var sources = Directory.GetFiles(catalogBlazor, "*.cs", SearchOption.AllDirectories)
+            .Concat(Directory.GetFiles(catalogBlazor, "*.razor", SearchOption.AllDirectories))
+            .Where(file => !file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal) &&
+                           !file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal));
+
+        foreach (var file in sources)
+        {
+            if (Regex.IsMatch(File.ReadAllText(file), @"^\s*@?using\s+ToolShare\.Lending\b", RegexOptions.Multiline))
+            {
+                violations.Add($"{file}: imports a ToolShare.Lending namespace");
+            }
+        }
+
+        violations.ShouldBeEmpty(violations.Count == 0 ? string.Empty : string.Join(Environment.NewLine, violations));
+    }
+
     private static string StripCommentsAndStrings(string source)
     {
         source = Regex.Replace(source, @"/\*.*?\*/", m => new string(' ', m.Length), RegexOptions.Singleline);

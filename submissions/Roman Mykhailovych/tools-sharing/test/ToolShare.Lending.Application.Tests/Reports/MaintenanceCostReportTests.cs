@@ -139,6 +139,121 @@ public class MaintenanceCostReportTests : ReportTestBase
         after.Cost.ShouldBe(costBefore);
     }
 
+    // ---- 008-out-of-band-maintenance US4 (FR-018, SC-005) ----
+
+    [Fact]
+    public async Task Both_origins_count_toward_the_total_and_their_subtotals_add_up_to_it()
+    {
+        var (_, instances) = await SeedToolWithInstancesAsync("Circular Saw", 5);
+        var reporter = await LibrarianMemberIdAsync();
+
+        await InsertClosedMaintenanceRequestAsync(instances[0].Id, Guid.NewGuid(), Today.AddDays(-20), Today.AddDays(-10), 30m);
+        await InsertClosedOutOfBandRequestAsync(instances[1].Id, reporter, Today.AddDays(-15), Today.AddDays(-5), 20m);
+        // Outside the range below — one of each origin.
+        await InsertClosedMaintenanceRequestAsync(instances[2].Id, Guid.NewGuid(), Today.AddDays(-90), Today.AddDays(-80), 500m);
+        await InsertClosedOutOfBandRequestAsync(instances[3].Id, reporter, Today.AddDays(-90), Today.AddDays(-80), 700m);
+        // Open — contributes nothing.
+        await InsertOpenOutOfBandRequestAsync(instances[4].Id, reporter, Today.AddDays(-3));
+
+        var result = await GetMaintenanceCostAsync(Today.AddDays(-30), Today);
+
+        result.TotalCost.ShouldBe(50m);
+        result.ClosedRequestCount.ShouldBe(2);
+        result.ReturnTriggeredSubtotal.ShouldBe(30m);
+        result.OutOfBandSubtotal.ShouldBe(20m);
+        (result.ReturnTriggeredSubtotal + result.OutOfBandSubtotal).ShouldBe(result.TotalCost);
+    }
+
+    [Fact]
+    public async Task Each_closed_request_is_listed_with_its_origin_in_closure_order()
+    {
+        var (tool, instances) = await SeedToolWithInstancesAsync("Circular Saw", 2);
+        var reporter = await LibrarianMemberIdAsync();
+        var loanId = Guid.NewGuid();
+
+        await InsertClosedOutOfBandRequestAsync(instances[1].Id, reporter, Today.AddDays(-15), Today.AddDays(-5), 20m);
+        await InsertClosedMaintenanceRequestAsync(instances[0].Id, loanId, Today.AddDays(-20), Today.AddDays(-10), 30m);
+
+        var result = await GetMaintenanceCostAsync(Today.AddDays(-30), Today);
+
+        result.Items.Count.ShouldBe(2);
+
+        var returnTriggered = result.Items[0];
+        returnTriggered.Origin.ShouldBe(MaintenanceRequestOrigin.ReturnTriggered);
+        returnTriggered.ToolInstanceId.ShouldBe(instances[0].Id);
+        returnTriggered.ToolName.ShouldBe(tool.Name);
+        returnTriggered.SerialNumber.ShouldBe(instances[0].SerialNumber);
+        returnTriggered.TriggeringLoanId.ShouldBe(loanId);
+        returnTriggered.Cost.ShouldBe(30m);
+        returnTriggered.ReportedByMemberId.ShouldBeNull();
+        returnTriggered.ReportReason.ShouldBeNull();
+        returnTriggered.ObservedCondition.ShouldBeNull();
+
+        var outOfBand = result.Items[1];
+        outOfBand.Origin.ShouldBe(MaintenanceRequestOrigin.OutOfBand);
+        outOfBand.TriggeringLoanId.ShouldBeNull();
+        outOfBand.ReportedByMemberId.ShouldBe(reporter);
+        outOfBand.ReportedByDisplayName.ShouldBe("Librarian Test User");
+        outOfBand.ReportReason.ShouldBe("Found cracked on the shelf");
+        outOfBand.ObservedCondition.ShouldBe(Catalog.ToolCondition.Worn);
+        outOfBand.Cost.ShouldBe(20m);
+
+        result.Items[0].ClosedAt.ShouldBeLessThan(result.Items[1].ClosedAt);
+    }
+
+    [Fact]
+    public async Task A_range_with_no_closures_has_zero_subtotals_and_no_items()
+    {
+        var result = await GetMaintenanceCostAsync(Today.AddDays(-3), Today.AddDays(-2));
+
+        result.ReturnTriggeredSubtotal.ShouldBe(0m);
+        result.OutOfBandSubtotal.ShouldBe(0m);
+        result.Items.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task A_request_whose_instance_cannot_be_resolved_is_still_listed()
+    {
+        // 006 B9: the row stays, with the name left null.
+        var unknownInstanceId = Guid.NewGuid();
+        await InsertClosedMaintenanceRequestAsync(unknownInstanceId, Guid.NewGuid(), Today.AddDays(-4), Today.AddDays(-2), 15m);
+
+        var result = await GetMaintenanceCostAsync(Today.AddDays(-3), Today);
+
+        var item = result.Items.ShouldHaveSingleItem();
+        item.ToolInstanceId.ShouldBe(unknownInstanceId);
+        item.ToolName.ShouldBeNull();
+        item.SerialNumber.ShouldBeNull();
+    }
+
+    private async Task InsertClosedOutOfBandRequestAsync(Guid toolInstanceId, Guid reporterMemberId, DateOnly openedOn, DateOnly closedOn, decimal cost)
+    {
+        var request = MaintenanceRequest.ReportOutOfBand(
+            Guid.NewGuid(),
+            toolInstanceId,
+            reporterMemberId,
+            "Found cracked on the shelf",
+            Catalog.ToolCondition.Worn,
+            openedOn.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc));
+
+        request.Close(closedOn.ToDateTime(new TimeOnly(9, 0), DateTimeKind.Utc), cost);
+
+        await MaintenanceRequestRepository.InsertAsync(request, autoSave: true);
+    }
+
+    private async Task InsertOpenOutOfBandRequestAsync(Guid toolInstanceId, Guid reporterMemberId, DateOnly openedOn)
+    {
+        var request = MaintenanceRequest.ReportOutOfBand(
+            Guid.NewGuid(),
+            toolInstanceId,
+            reporterMemberId,
+            "Found cracked on the shelf",
+            Catalog.ToolCondition.Worn,
+            openedOn.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc));
+
+        await MaintenanceRequestRepository.InsertAsync(request, autoSave: true);
+    }
+
     private async Task<MaintenanceCostReportDto> GetMaintenanceCostAsync(DateOnly from, DateOnly to)
     {
         using (AsLibrarian())

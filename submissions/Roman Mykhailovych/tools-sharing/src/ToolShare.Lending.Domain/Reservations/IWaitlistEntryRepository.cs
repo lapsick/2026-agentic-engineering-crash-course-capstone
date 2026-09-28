@@ -16,4 +16,7 @@ public interface IWaitlistEntryRepository : IRepository<WaitlistEntry, Guid>
 
     /// <summary>WL-05's worker query: every Offered entry whose window has passed as of <paramref name="asOf"/>.</summary>
     Task<List<WaitlistEntry>> GetExpiredOffersAsync(DateTime asOf, CancellationToken cancellationToken = default);
+
+    /// <summary>008 WL-07's target: the instance's currently Offered entry, if any (at most one exists at a time).</summary>
+    Task<WaitlistEntry?> FindOfferedForInstanceAsync(Guid toolInstanceId, CancellationToken cancellationToken = default);
 }

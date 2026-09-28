@@ -56,4 +56,38 @@ public class MaintenanceAuthorizationTests : LendingAuthorizationTestBase
             await Should.ThrowAsync<AbpAuthorizationException>(() => _maintenanceRequestAppService.CloseAsync(opened!.Id, new CloseMaintenanceRequestDto { Cost = 10m }));
         }
     }
+
+    /// <summary>008 FR-020: reporting out-of-band requires Lending.Maintenance.Report — granted to Librarian.</summary>
+    [Fact]
+    public async Task A_Librarian_may_report_maintenance_out_of_band()
+    {
+        var (_, _, instance) = await SeedCatalogDataAsync();
+
+        using (AsLibrarian())
+        {
+            await Should.NotThrowAsync(() => _maintenanceRequestAppService.ReportAsync(new ReportMaintenanceDto
+            {
+                ToolInstanceId = instance.Id,
+                ObservedCondition = ToolCondition.Good,
+                Reason = "Frayed cord"
+            }));
+        }
+    }
+
+    /// <summary>008 FR-020 / FR-021: a plain member has no way to report maintenance.</summary>
+    [Fact]
+    public async Task A_member_with_no_Lending_grants_cannot_report_maintenance()
+    {
+        var (_, _, instance) = await SeedCatalogDataAsync();
+
+        using (AsMemberWithNoGrants())
+        {
+            await Should.ThrowAsync<AbpAuthorizationException>(() => _maintenanceRequestAppService.ReportAsync(new ReportMaintenanceDto
+            {
+                ToolInstanceId = instance.Id,
+                ObservedCondition = ToolCondition.Good,
+                Reason = "Frayed cord"
+            }));
+        }
+    }
 }

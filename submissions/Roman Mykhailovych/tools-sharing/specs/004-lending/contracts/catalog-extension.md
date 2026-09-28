@@ -42,6 +42,7 @@ public interface IToolInstanceCirculationReportingAppService : IApplicationServi
 | `MarkReturnedAsync` | `Condition → returnedCondition`, `CirculationState → InCirculation` | Instance is not currently `OnLoan` (`Catalog:InstanceNotOnLoan`) |
 | `MarkReturnedForMaintenanceAsync` | `Condition → returnedCondition`, `CirculationState → UnderMaintenance` | Instance is not currently `OnLoan` (`Catalog:InstanceNotOnLoan`) |
 | `MarkMaintenanceClosedAsync` | `CirculationState → InCirculation` (`Condition` untouched) | Instance is not currently `UnderMaintenance` (`Catalog:InstanceNotUnderMaintenance`) |
+| `MarkSentToMaintenanceAsync` *(added by [008](../../008-out-of-band-maintenance/contracts/catalog-extension.md))* | `Condition → observedCondition` (no-op if equal), `CirculationState → UnderMaintenance`, one history row with the reason | Retired (`Catalog:InstanceIsRetired`); not `InCirculation` (`Catalog:InstanceNotAvailableForMaintenance`); observed better than current (`Catalog:ObservedConditionBetterThanCurrent`) |
 
 Every operation is unconditionally idempotent-*safe* to call in the sequence Lending's own domain
 guarantees (checkout only happens once per loan; return only happens once per loan; a maintenance

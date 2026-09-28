@@ -112,7 +112,42 @@
                         ? "1 maintenance request closed in this period."
                         : $"{_maintenanceCost.ClosedRequestCount} maintenance requests closed in this period.")
                 </MudText>
+
+                @* 008 FR-018: the total split by origin, then each closed request. *@
+                <MudText Typo="Typo.body2" Class="mt-2">
+                    @L["Maintenance:ReturnTriggeredSubtotal"]: @_maintenanceCost.ReturnTriggeredSubtotal.ToString("C")
+                    · @L["Maintenance:OutOfBandSubtotal"]: @_maintenanceCost.OutOfBandSubtotal.ToString("C")
+                </MudText>
             </MudPaper>
+
+            <MudTable Items="_maintenanceCost.Items" Dense="true" Hover="true" Class="mt-2">
+                <HeaderContent>
+                    <MudTh>@L["Maintenance:Closed"]</MudTh>
+                    <MudTh>@L["Maintenance:Tool"]</MudTh>
+                    <MudTh>@L["Maintenance:Origin"]</MudTh>
+                    <MudTh>@L["Maintenance:Cost"]</MudTh>
+                    <MudTh>@L["Maintenance:Details"]</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="@L["Maintenance:Closed"]">@context.ClosedAt.ToLocalTime().ToString("d")</MudTd>
+                    <MudTd DataLabel="@L["Maintenance:Tool"]">@(context.ToolName ?? context.ToolInstanceId.ToString()) @context.SerialNumber</MudTd>
+                    <MudTd DataLabel="@L["Maintenance:Origin"]">@L[$"Maintenance:Origin:{context.Origin}"]</MudTd>
+                    <MudTd DataLabel="@L["Maintenance:Cost"]">@context.Cost.ToString("C")</MudTd>
+                    <MudTd DataLabel="@L["Maintenance:Details"]">
+                        @if (context.Origin == MaintenanceRequestOrigin.OutOfBand)
+                        {
+                            @($"{context.ReportedByDisplayName ?? context.ReportedByMemberId.ToString()} · {context.ReportReason} · {context.ObservedCondition}")
+                        }
+                        else
+                        {
+                            @($"{L["Maintenance:Loan"]} {context.TriggeringLoanId}")
+                        }
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText Class="pa-4">@L["Maintenance:NoClosedRequests"]</MudText>
+                </NoRecordsContent>
+            </MudTable>
         }
     </MudTabPanel>
 

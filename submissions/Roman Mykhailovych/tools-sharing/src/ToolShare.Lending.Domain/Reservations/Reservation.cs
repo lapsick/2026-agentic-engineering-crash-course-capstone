@@ -120,4 +120,28 @@ public class Reservation : FullAuditedAggregateRoot<Guid>
         CancelledAt = at;
         CancellationReason = reason;
     }
+
+    /// <summary>
+    /// Enforces RES-09 (008-out-of-band-maintenance, FR-008): system-initiated
+    /// cancellation when an out-of-band report takes the instance out of
+    /// circulation. Unlike <see cref="CancelForMaintenance"/> (RES-08, the
+    /// return-triggered path, unchanged) there is no start-date guard: the
+    /// instance is on the shelf, so a reservation whose range has already begun
+    /// but which has not been collected is still <see cref="ReservationStatus.Active"/>
+    /// and would otherwise survive pointing at an instance that can't be lent.
+    /// </summary>
+    public void CancelUncollectedForMaintenance(DateTime at, string reason)
+    {
+        if (Status != ReservationStatus.Active)
+        {
+            throw new BusinessException(LendingDomainErrorCodes.InvalidStateTransition);
+        }
+
+        reason = Check.NotNullOrWhiteSpace(reason, nameof(reason)).Trim();
+        Check.Length(reason, nameof(reason), LendingDomainSharedConsts.CancellationReasonMaxLength);
+
+        Status = ReservationStatus.Cancelled;
+        CancelledAt = at;
+        CancellationReason = reason;
+    }
 }

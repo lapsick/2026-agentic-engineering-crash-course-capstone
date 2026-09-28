@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Конвеєр перевірок ToolShare</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=JetBrains+Mono:wght@400;500&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --bg: #EDF0EB;
+    --surface: #FFFFFF;
+    --surface-2: #E2E7E0;
+    --ink: #1B2226;
+    --muted: #55626A;
+    --line: #C7CFC8;
+    --accent: #E3A600;
+    --accent-soft: #F6E3A6;
+    --on-accent: #1B2226;
+    --steel: #3C5664;
+    --ok: #2E7A4D;
+    --bad: #B03629;
+    --warn: #9A6B00;
+    --stripe-dark: #1B2226;
+    --font-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+    --font-body: "Public Sans", "Segoe UI", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #12171A;
+      --surface: #1A2125;
+      --surface-2: #222B30;
+      --ink: #E6EBE7;
+      --muted: #9BA8A1;
+      --line: #334041;
+      --accent: #F2BE2E;
+      --accent-soft: #3D3416;
+      --on-accent: #12171A;
+      --steel: #8EB0C1;
+      --ok: #5CBB82;
+      --bad: #E36A5C;
+      --warn: #E0B24A;
+      --stripe-dark: #0B0F11;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #12171A;
+    --surface: #1A2125;
+    --surface-2: #222B30;
+    --ink: #E6EBE7;
+    --muted: #9BA8A1;
+    --line: #334041;
+    --accent: #F2BE2E;
+    --accent-soft: #3D3416;
+    --on-accent: #12171A;
+    --steel: #8EB0C1;
+    --ok: #5CBB82;
+    --bad: #E36A5C;
+    --warn: #E0B24A;
+    --stripe-dark: #0B0F11;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  img { max-width: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.6;
+    padding-inline: 16px;
+    padding-block: 0 64px;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  .prose { max-width: 66ch; }
+  h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.05; margin: 0; }
+  h1 { font-size: clamp(2.6rem, 7vw, 4.4rem); font-weight: 700; letter-spacing: 0.01em; text-transform: uppercase; }
+  h2 { font-size: clamp(1.8rem, 4vw, 2.4rem); font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; }
+  h3 { font-size: 1.35rem; font-weight: 600; letter-spacing: 0.02em; }
+  p { margin: 0; }
+  code, .mono { font-family: var(--font-mono); font-size: 0.86em; }
+  .label {
+    font-family: var(--font-display); font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.12em; font-size: 0.85rem; color: var(--muted);
+  }
+  section { padding-block: 56px 0; display: grid; gap: 24px; }
+  a { color: var(--steel); }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+  /* Header with a workshop hazard stripe */
+  .hazard {
+    height: 12px; margin-inline: -16px;
+    background: repeating-linear-gradient(-45deg, var(--accent) 0 14px, var(--stripe-dark) 14px 28px);
+  }
+  header { padding-block: 40px 0; display: grid; gap: 18px; }
+  .lede { font-size: 1.2rem; color: var(--ink); max-width: 60ch; }
+  .lede strong { background: linear-gradient(transparent 58%, var(--accent-soft) 58%); }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px 20px; color: var(--muted); font-size: 0.9rem; }
+
+  /* Roles as tool tags */
+  .tags { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .tag {
+    position: relative; background: var(--surface); border: 1px solid var(--line);
+    border-radius: 4px 18px 18px 4px; padding: 20px 20px 20px 44px; display: grid; gap: 10px;
+  }
+  .tag::before {
+    content: ""; position: absolute; left: 14px; top: 22px; width: 14px; height: 14px;
+    border-radius: 50%; background: var(--bg); border: 2px solid var(--line);
+  }
+  .tag h3 { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .tag .who { font-family: var(--font-body); font-size: 0.8rem; font-weight: 600; color: var(--muted); letter-spacing: 0; text-transform: none; }
+  .tag dl { margin: 0; display: grid; gap: 6px; font-size: 0.95rem; }
+  .tag dt { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.78rem; color: var(--muted); font-weight: 600; }
+  .tag dd { margin: 0; }
+  .tag.forbid dd.no { color: var(--bad); }
+
+  /* Pipeline rail */
+  .rail { position: relative; display: grid; gap: 0; }
+  .station { display: grid; grid-template-columns: 56px 1fr; gap: 0 16px; position: relative; }
+  .station .node {
+    position: relative; display: flex; justify-content: center;
+  }
+  .station .node::before {
+    content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 4px; transform: translateX(-50%);
+    background: var(--line);
+  }
+  .station:first-child .node::before { top: 22px; }
+  .station:last-child .node::before { bottom: calc(100% - 22px); }
+  .num {
+    position: relative; z-index: 1; width: 44px; height: 44px; border-radius: 50%;
+    display: grid; place-items: center; font-family: var(--font-display); font-weight: 700; font-size: 1.3rem;
+    background: var(--surface); border: 3px solid var(--line); color: var(--ink);
+  }
+  .station.auto .num { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .station .body { padding-block: 6px 26px; display: grid; gap: 8px; }
+  .station .body p { color: var(--muted); max-width: 62ch; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    font-size: 0.75rem; font-weight: 600; padding: 2px 9px; border-radius: 999px;
+    border: 1px solid var(--line); color: var(--muted); background: var(--surface);
+  }
+  .chip.auto { border-color: var(--accent); color: var(--ink); background: var(--accent-soft); }
+  .chip.human { border-color: var(--steel); color: var(--steel); }
+  .chip.loop { border-color: var(--ok); color: var(--ok); }
+  .phase {
+    grid-column: 1 / -1; margin: 4px 0 14px 72px; padding-top: 6px;
+  }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 22px; font-size: 0.9rem; color: var(--muted); align-items: center; }
+  .legend span { display: inline-flex; align-items: center; gap: 8px; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; border: 3px solid var(--line); background: var(--surface); display: inline-block; }
+  .dot.auto { background: var(--accent); border-color: var(--accent); }
+
+  /* Repair loop diagram */
+  .figure { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 20px; display: grid; gap: 18px; }
+  .scroll { overflow-x: auto; }
+  svg text { font-family: var(--font-body); }
+  .exits { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+  .exit { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; padding: 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); }
+  .exit p { font-size: 0.93rem; color: var(--muted); }
+  .exit strong { display: block; color: var(--ink); font-size: 0.98rem; }
+
+  /* Inspection stamps */
+  .stamp {
+    display: inline-block; font-family: var(--font-display); font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; font-size: 0.8rem; padding: 3px 8px; border: 2px solid currentColor; border-radius: 3px;
+    transform: rotate(-4deg); white-space: nowrap; line-height: 1.3;
+  }
+  .stamp.ok { color: var(--ok); }
+  .stamp.bad { color: var(--bad); }
+  .stamp.warn { color: var(--warn); }
+  .stamp.info { color: var(--steel); }
+
+  /* Loops list */
+  .loops { display: grid; gap: 14px; }
+  .loop {
+    display: grid; grid-template-columns: 56px 1fr; gap: 16px; padding: 18px; background: var(--surface);
+    border: 1px solid var(--line); border-radius: 6px; align-items: start;
+  }
+  .loop .ico {
+    width: 48px; height: 48px; border-radius: 50%; border: 3px solid var(--ok); color: var(--ok);
+    display: grid; place-items: center; font-size: 1.5rem; font-weight: 700; font-family: var(--font-display);
+  }
+  .loop .ico.star { border-color: var(--accent); color: var(--ink); background: var(--accent-soft); }
+  .loop div { display: grid; gap: 6px; }
+  .loop p { color: var(--muted); max-width: 64ch; }
+  .flow { font-family: var(--font-mono); font-size: 0.84rem; color: var(--ink); background: var(--bg); border-radius: 4px; padding: 6px 10px; display: inline-block; }
+
+  /* Guards */
+  .guards { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px; }
+  .guard { padding: 18px; border-top: 4px solid var(--steel); background: var(--surface); border-radius: 0 0 6px 6px; display: grid; gap: 8px; align-content: start; }
+  .guard p { color: var(--muted); font-size: 0.95rem; }
+
+  /* Tables */
+  table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 0.95rem; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.8rem; color: var(--muted); font-weight: 600; }
+  td.num-cell { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .table-box { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; overflow-x: auto; }
+
+  /* Status */
+  .status { display: grid; gap: 12px; }
+  .status-row {
+    display: grid; grid-template-columns: 150px 1fr; gap: 16px; align-items: start; padding: 16px 18px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+  }
+  .status-row p { color: var(--muted); }
+  .status-row strong { color: var(--ink); }
+
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+  summary { cursor: pointer; padding: 14px 18px; font-weight: 600; }
+  details .table-box { border: 0; border-top: 1px solid var(--line); border-radius: 0 0 6px 6px; }
+
+  footer { padding-block: 48px 0; color: var(--muted); font-size: 0.88rem; }
+
+  @media (max-width: 560px) {
+    .station { grid-template-columns: 44px 1fr; gap: 0 12px; }
+    .num { width: 36px; height: 36px; font-size: 1.1rem; }
+    .phase { margin-left: 56px; }
+    .status-row { grid-template-columns: 1fr; gap: 8px; }
+    .loop { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+<div class="hazard" aria-hidden="true"></div>
+<div class="wrap">
+
+  <header>
+    <span class="label">ToolShare · агентна розробка</span>
+    <h1>Конвеєр перевірок</h1>
+    <p class="lede">ШІ-агент пише код, але <strong>вирішує, чи роботу зроблено, не він</strong>. Кожну фічу проводять через кілька незалежних перевірок: тести, окремого ремонтника, окремого рецензента і робота-користувача в браузері. Людина потрібна лише там, де треба ухвалити рішення.</p>
+    <div class="meta">
+      <span>Стан на 28 вересня 2026</span>
+      <span>Проєкт: спільна бібліотека інструментів</span>
+      <span>Процес: Spec Kit + власні перевірки</span>
+    </div>
+  </header>
+
+  <section aria-labelledby="roles-h">
+    <h2 id="roles-h">Хто що робить</h2>
+    <p class="prose">Щоб агент не оцінював сам себе, роботу поділено між ролями. Кожна має одне завдання і чіткі заборони.</p>
+    <div class="tags">
+      <article class="tag">
+        <h3>Автор <span class="who">агент у сесії розробки</span></h3>
+        <dl><dt>Робить</dt><dd>Пише код і тести за планом фічі</dd>
+        <dt>Не може</dt><dd>Сам оголошувати роботу готовою</dd></dl>
+      </article>
+      <article class="tag">
+        <h3>Контролер <span class="who">скрипт, без ШІ</span></h3>
+        <dl><dt>Робить</dt><dd>Запускає всі тести фічі й перевіряє, що модулі не лізуть у «чужі кімнати»</dd>
+        <dt>Не може</dt><dd>Нічого виправляти: лише «пройшло» чи «ні»</dd></dl>
+      </article>
+      <article class="tag">
+        <h3>Ремонтник <span class="who">окремий агент</span></h3>
+        <dl><dt>Робить</dt><dd>Отримує список того, що впало, і виправляє робочий код</dd>
+        <dt>Не може</dt><dd>Чіпати тести й правила перевірки, бачити розмову з автором</dd></dl>
+      </article>
+      <article class="tag">
+        <h3>Рецензент <span class="who">окремий агент, лише читає</span></h3>
+        <dl><dt>Робить</dt><dd>Читає зміни, як досвідчений колега, і пише зауваження за правилами проєкту</dd>
+        <dt>Не може</dt><dd>Щось змінювати і повторно запускати тести</dd></dl>
+      </article>
+      <article class="tag">
+        <h3>Робот-користувач <span class="who">браузер, без ШІ</span></h3>
+        <dl><dt>Робить</dt><dd>Відкриває застосунок у браузері, входить і проходить сценарії, як людина</dd>
+        <dt>Не може</dt><dd>Щось лагодити: лише фіксує результат і «запис екрана» при падінні</dd></dl>
+      </article>
+      <article class="tag">
+        <h3>Екзаменатор <span class="who">скрипт + агенти</span></h3>
+        <dl><dt>Робить</dt><dd>Дає ремонтнику й рецензенту підготовлені задачі з відомою відповіддю</dd>
+        <dt>Не може</dt><dd>Чіпати твою робочу копію: працює в тимчасовій</dd></dl>
+      </article>
+    </div>
+  </section>
+
+  <section aria-labelledby="path-h">
+    <h2 id="path-h">Шлях фічі</h2>
+    <div class="legend" aria-label="Позначення">
+      <span><i class="dot auto"></i> запускається сама</span>
+      <span><i class="dot"></i> людина + агент</span>
+    </div>
+    <div class="rail">
+      <div class="phase"><span class="label">Домовляємося, що будувати</span></div>
+      <div class="station">
+        <div class="node"><span class="num">1</span></div>
+        <div class="body"><h3>Опис фічі</h3><p>Людина описує, що потрібно і навіщо. Агент оформлює це як специфікацію з пронумерованими вимогами.</p><div class="chips"><span class="chip human">рішення людини</span></div></div>
+      </div>
+      <div class="station">
+        <div class="node"><span class="num">2</span></div>
+        <div class="body"><h3>Уточнення</h3><p>Агент ставить до п'яти запитань про неясні місця, відповіді потрапляють в опис.</p><div class="chips"><span class="chip human">рішення людини</span></div></div>
+      </div>
+      <div class="station">
+        <div class="node"><span class="num">3</span></div>
+        <div class="body"><h3>План</h3><p>Як саме будувати: дані, зв'язки між модулями. План звіряється з «конституцією» проєкту.</p></div>
+      </div>
+      <div class="station">
+        <div class="node"><span class="num">4</span></div>
+        <div class="body"><h3>Список задач</h3><p>Покрокові задачі, де тести завжди йдуть перед кодом.</p></div>
+      </div>
+      <div class="phase"><span class="label">Будуємо і перевіряємо</span></div>
+      <div class="station">
+        <div class="node"><span class="num">5</span></div>
+        <div class="body"><h3>Автор пише код і тести</h3><p>Задача за задачею. Під час роботи запускає лише тести поточного кроку, а повну перевірку лишає контролеру.</p></div>
+      </div>
+      <div class="station auto">
+        <div class="node"><span class="num">6</span></div>
+        <div class="body"><h3>Контролер</h3><p>Один раз збирає проєкт, перевіряє межі модулів і запускає всі тести фічі. Якщо щось червоне, вмикається ремонтник, а потім контролер перевіряє все ще раз.</p><div class="chips"><span class="chip auto">автоматично</span><span class="chip loop">↺ цикл ремонту</span></div></div>
+      </div>
+      <div class="station auto">
+        <div class="node"><span class="num">7</span></div>
+        <div class="body"><h3>Рецензент</h3><p>Лише якщо контролер сказав «пройшло». Результат — звіт із зауваженнями за рівнями: «блокує», «важливо», «можна краще».</p><div class="chips"><span class="chip auto">автоматично</span><span class="chip human">що виправляти, вирішує людина</span><span class="chip loop">↺ після виправлень знову 6 і 7</span></div></div>
+      </div>
+      <div class="station">
+        <div class="node"><span class="num">8</span></div>
+        <div class="body"><h3>Звірка з описом</h3><p>Чи зроблено все, що обіцяли в описі. Пропущене дописується в задачі, і роботу продовжують з кроку 5.</p><div class="chips"><span class="chip loop">↺ назад до 5, якщо щось пропущено</span></div></div>
+      </div>
+      <div class="station auto">
+        <div class="node"><span class="num">9</span></div>
+        <div class="body"><h3>Робот-користувач</h3><p>Один раз, у самому кінці, і лише якщо фіча змінює екрани. Піднімає весь застосунок із чистою базою і проходить сценарії в браузері. Нічого не лагодить: червоний результат іде людині разом із записом екрана.</p><div class="chips"><span class="chip auto">автоматично</span><span class="chip">кілька хвилин</span></div></div>
+      </div>
+      <div class="station">
+        <div class="node"><span class="num">10</span></div>
+        <div class="body"><h3>Публікація</h3><p>Коміт і запит на злиття разом з доказами: звіт рецензента, результати перевірок.</p><div class="chips"><span class="chip human">рішення людини</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="repair-h">
+    <h2 id="repair-h">Цикл ремонту</h2>
+    <p class="prose">Найважливіший цикл. Ремонтник отримує тільки список того, що впало, виправляє робочий код, і контролер перевіряє знову. Скільки кіл пройде, заздалегідь невідомо, тому є чіткі правила зупинки.</p>
+    <div class="figure">
+      <div class="scroll">
+        <svg viewBox="0 0 720 230" width="720" height="230" role="img" aria-label="Цикл: перевірити, якщо червоне — ремонтник виправляє, перевірити знову; якщо зелене — готово">
+          <defs>
+            <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"></path>
+            </marker>
+          </defs>
+          <rect x="20" y="85" width="170" height="60" rx="8" fill="var(--surface-2)" stroke="var(--line)" stroke-width="2"></rect>
+          <text x="105" y="112" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">Перевірити</text>
+          <text x="105" y="132" text-anchor="middle" font-size="12" fill="var(--muted)">тести + межі модулів</text>
+
+          <polygon points="330,70 400,115 330,160 260,115" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"></polygon>
+          <text x="330" y="120" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">Червоне?</text>
+
+          <rect x="470" y="150" width="210" height="60" rx="8" fill="var(--surface-2)" stroke="var(--line)" stroke-width="2"></rect>
+          <text x="575" y="177" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">Ремонтник виправляє</text>
+          <text x="575" y="197" text-anchor="middle" font-size="12" fill="var(--muted)">лише робочий код</text>
+
+          <rect x="470" y="20" width="210" height="60" rx="8" fill="none" stroke="var(--ok)" stroke-width="3"></rect>
+          <text x="575" y="47" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ok)">Готово</text>
+          <text x="575" y="67" text-anchor="middle" font-size="12" fill="var(--muted)">усе зелене</text>
+
+          <line x1="190" y1="115" x2="256" y2="115" stroke="var(--muted)" stroke-width="2" marker-end="url(#arr)"></line>
+          <path d="M 372 97 Q 420 50 466 50" fill="none" stroke="var(--ok)" stroke-width="2" marker-end="url(#arr)"></path>
+          <text x="420" y="62" font-size="12" fill="var(--ok)">ні</text>
+          <path d="M 372 133 Q 420 180 466 180" fill="none" stroke="var(--bad)" stroke-width="2" marker-end="url(#arr)"></path>
+          <text x="416" y="176" font-size="12" fill="var(--bad)">так</text>
+          <path d="M 575 210 Q 575 226 350 226 Q 105 226 105 149" fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arr)"></path>
+          <text x="300" y="220" font-size="12" fill="var(--muted)">перевірити ще раз</text>
+        </svg>
+      </div>
+      <div class="exits">
+        <div class="exit"><span class="stamp ok">Готово</span><p><strong>Усе зелене</strong>Тести пройдено, межі модулів не порушено.</p></div>
+        <div class="exit"><span class="stamp warn">5 спроб</span><p><strong>Ліміт вичерпано</strong>Далі розбирається людина.</p></div>
+        <div class="exit"><span class="stamp warn">Застряг</span><p><strong>Та сама помилка двічі поспіль</strong>Найчастіше це означає, що нечітко описано саму вимогу.</p></div>
+        <div class="exit"><span class="stamp bad">Порушення</span><p><strong>Спроба змінити тести чи правила</strong>Негайна зупинка: «зелений» результат, отриманий підміною правил, нічого не вартий.</p></div>
+        <div class="exit"><span class="stamp info">Середовище</span><p><strong>Проблема не в коді</strong>Наприклад, не запущено Docker. Ремонтника не кличуть, щоб не витрачати гроші.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="loops-h">
+    <h2 id="loops-h">Усі цикли</h2>
+    <div class="loops">
+      <div class="loop"><span class="ico">1</span><div><h3>Ремонт</h3><p>Описаний вище: перевірити, виправити, перевірити знову, доки не зелене або не спрацює правило зупинки.</p><span class="flow">перевірка → ремонт → перевірка</span></div></div>
+      <div class="loop"><span class="ico">2</span><div><h3>Повторна перевірка після ремонту</h3><p>Якщо щось лагодили, контролер наприкінці ще раз перевіряє всі тести фічі, бо виправлення в одному місці могло зламати інше.</p><span class="flow">ремонт → перевірка всього</span></div></div>
+      <div class="loop"><span class="ico">3</span><div><h3>Рецензія</h3><p>Рецензент пише зауваження, людина вирішує, що виправляти, потім знову контролер і рецензент.</p><span class="flow">рецензія → виправлення → перевірка → рецензія</span></div></div>
+      <div class="loop"><span class="ico">4</span><div><h3>Повнота</h3><p>Звірка з описом шукає забуте. Знайдене дописується в задачі, і автор повертається до роботи.</p><span class="flow">звірка → нові задачі → автор</span></div></div>
+      <div class="loop"><span class="ico star">★</span><div><h3>Якість самих інструментів</h3><p>Екзамен: ремонтнику підкладають навмисно зіпсований код, рецензенту — навмисні порушення правил і кілька чистих змін. Оцінюють без участі ШІ, за точними правилами. Екзамен запускають після кожної зміни в інструкціях ремонтника чи рецензента.</p><span class="flow">зміна інструкцій → екзамен → цифри</span></div></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="guards-h">
+    <h2 id="guards-h">Запобіжники</h2>
+    <div class="guards">
+      <div class="guard"><h3>Тести — це закон</h3><p>Змінити тест заради «зеленого» результату не можна. Система помічає будь-яку спробу і зупиняє роботу.</p></div>
+      <div class="guard"><h3>Хто пише, той не перевіряє</h3><p>Ремонтник і рецензент працюють окремо, з чистою пам'яттю і часто на іншій, дешевшій моделі.</p></div>
+      <div class="guard"><h3>Ліміти</h3><p>Не більше 5 спроб ремонту, до $2 на одну спробу і загальна стеля витрат на екзамен.</p></div>
+      <div class="guard"><h3>Без зайвих повторів</h3><p>Якщо жоден файл не змінився від останньої перевірки, береться збережений результат. Браузерну перевірку запускають один раз, у самому кінці.</p></div>
+      <div class="guard"><h3>Усе записується</h3><p>Кожна дія агента, кожен прогін і кожна рецензія лишають слід. Рецензії та підсумки екзаменів зберігаються в історії проєкту.</p></div>
+      <div class="guard"><h3>Робоча копія недоторкана</h3><p>Екзамен щоразу працює в тимчасовій копії проєкту і прибирає її за собою.</p></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="cost-h">
+    <h2 id="cost-h">Скільки це коштує</h2>
+    <div class="table-box">
+      <table>
+        <thead><tr><th scope="col">Що</th><th scope="col">Час</th><th scope="col">Гроші</th></tr></thead>
+        <tbody>
+          <tr><td>Перевірка, коли все й так зелене</td><td class="num-cell">1–3 хв</td><td class="num-cell">$0 · агент не потрібен</td></tr>
+          <tr><td>Одна спроба ремонту</td><td class="num-cell">~15 с</td><td class="num-cell">$0.06 (Haiku) – $0.25 (Sonnet)</td></tr>
+          <tr><td>Одна рецензія</td><td class="num-cell">1–3 хв</td><td class="num-cell">~$0.05</td></tr>
+          <tr><td>Браузерна перевірка</td><td class="num-cell">кілька хвилин</td><td class="num-cell">$0 · агента немає</td></tr>
+          <tr><td>Повний екзамен (обидва набори)</td><td class="num-cell">~5 хв</td><td class="num-cell">~$1</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="state-h">
+    <h2 id="state-h">Поточний стан</h2>
+    <div class="status">
+      <div class="status-row"><span><span class="stamp ok">Пройшло</span></span><p><strong>Екзамен рецензента: 10 з 10.</strong> Знайшов усі 8 навмисних порушень, обидві чисті зміни схвалив. $0.42.</p></div>
+      <div class="status-row"><span><span class="stamp ok">Пройшло</span></span><p><strong>Екзамен ремонтника: 11 з 11</strong> на найдешевшій моделі (Haiku). Тести жодного разу не змінено. $0.65.</p></div>
+      <div class="status-row"><span><span class="stamp bad">Заблоковано</span></span><p><strong>Браузерна перевірка поки не може пройти.</strong> Під час першого ж запуску вона знайшла справжню помилку: програма підготовки бази падає на чистій базі. Помилку ще не виправлено, тож до виправлення фічі, що змінюють екрани, на останньому кроці отримуватимуть «не пройшло».</p></div>
+      <div class="status-row"><span><span class="stamp warn">Не випробувано</span></span><p><strong>Браузерні сценарії ще не дійшли до браузера.</strong> «Увійти» і «створити категорію» на живих екранах поки не перевірені: їх заблокувала та сама помилка.</p></div>
+      <div class="status-row"><span><span class="stamp info">Дрібниця</span></span><p><strong>Неточний опис рецензента в налаштуваннях.</strong> Там написано «дивиться зміни відносно main», хоча за замовчуванням він дивиться лише на ще не збережені зміни.</p></div>
+      <div class="status-row"><span><span class="stamp warn">Не збережено</span></span><p><strong>Більшість частин конвеєра ще не закомічена:</strong> ремонтник, браузерна перевірка, екзамен, пояснення до тестів.</p></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="files-h">
+    <h2 id="files-h">Де що лежить</h2>
+    <details>
+      <summary>Відповідність ролей і файлів у репозиторії</summary>
+      <div class="table-box">
+        <table>
+          <thead><tr><th scope="col">Роль</th><th scope="col">Файли</th></tr></thead>
+          <tbody>
+            <tr><td>Контролер</td><td><code>scripts/speckit-gate.ps1</code>, skill <code>speckit-green-gate</code></td></tr>
+            <tr><td>Цикл ремонту і ремонтник</td><td><code>scripts/fix-until-green.ps1</code>, <code>.claude/agents/toolshare-fixer.md</code></td></tr>
+            <tr><td>Рецензент</td><td><code>.claude/agents/toolshare-reviewer.md</code>, skill <code>speckit-code-review</code>, звіти в <code>reviews/</code></td></tr>
+            <tr><td>Робот-користувач</td><td><code>test/ToolShare.E2E.Tests</code>, <code>scripts/speckit-e2e.ps1</code>, skill <code>speckit-e2e-check</code></td></tr>
+            <tr><td>Екзаменатор</td><td><code>scripts/run-evals.ps1</code>, задачі й результати в <code>evals/</code></td></tr>
+            <tr><td>Автоматичні запуски</td><td><code>.specify/extensions.yml</code> (після реалізації: контролер і рецензент; після звірки: робот-користувач)</td></tr>
+            <tr><td>Межі модулів</td><td><code>scripts/check-module-boundaries.ps1</code></td></tr>
+            <tr><td>Правила для агентів</td><td><code>.claude/rules/speckit-gate.md</code>, <code>.claude/rules/testing.md</code>, <code>test/README.md</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+
+  <footer>
+    <p>ToolShare — модульний моноліт на ABP / .NET 10 з Blazor і PostgreSQL. Процес розробки: Spec Kit, доповнений власними автоматичними перевірками.</p>
+  </footer>
+</div>
+
+</body>
+</html>

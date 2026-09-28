@@ -23,7 +23,13 @@ fixture failure.
    ABP application), `<Module>ApplicationTestModule.ConfigureServices` calls `CreateDatabaseAsync()`
    — a new `test_<guid>` database is cloned from the template and every module `DbContext`
    (`AbpDbContextOptions`) is pointed at it. So **each test gets its own clean database**: no
-   cleanup is needed and test order doesn't matter.
+   cleanup is needed and test order doesn't matter. Each cloned database's Npgsql pool is capped
+   at **10** connections, and when the next database is cloned, the **previous** one's pool is
+   cleared. Tests run sequentially, so that test's application is already disposed by then.
+   Before this (008-out-of-band-maintenance), every per-test database kept its idle pooled
+   connections open for the whole run. Once `ToolShare.Lending.Application.Tests` grew to 139 tests,
+   including parallel concurrency tests, a full run exceeded `max_connections=300`
+   (`53300: sorry, too many clients already`) while every filtered run still passed.
 5. Module test modules **deliberately do not** depend on `ToolShareTestBaseModule` and do not call
    `AddAlwaysAllowAuthorization()` — permissions and `MembershipMethodInvocationAuthorizationService`
    (the enrolment gate) are enforced for real.
@@ -37,7 +43,10 @@ collection with no cloning, so tests there must be read-only.
 - `source database "toolshare_template" is being accessed by other users` → something still holds a
   connection to the template after migration; never open connections to `TemplateConnectionString`
   outside `EnsureTemplateMigratedAsync`.
-- `too many clients already` → a test isn't releasing connections/`DbContext`s; the limit is already 300.
+- `too many clients already` → a test isn't releasing connections/`DbContext`s. The limit is already
+  300, and each test's pool is capped at 10 and released when the next test starts (step 4). So a
+  single test holding more than 10 connections at once, or a test class that bypasses
+  `CreateDatabaseAsync`, is the likely cause. Don't raise the limit or the cap to hide it.
 - The enrolment gate rejects a call (`AbpAuthorizationException`) → the principal has no Active
   `Member` row: use a fixed id from `<Module>TestPrincipals`, not `Guid.NewGuid()`.
 

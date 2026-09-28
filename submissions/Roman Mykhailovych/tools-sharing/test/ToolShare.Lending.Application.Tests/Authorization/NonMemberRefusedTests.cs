@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Shouldly;
 using ToolShare.Lending.Loans;
+using ToolShare.Lending.Maintenance;
 using ToolShare.Lending.Reservations;
 using Volo.Abp.Authorization;
 using Xunit;
@@ -43,6 +44,24 @@ public class NonMemberRefusedTests : LendingAuthorizationTestBase
         using (AsAuthenticatedNonMember())
         {
             await Should.ThrowAsync<AbpAuthorizationException>(() => _loanAppService.CheckOutAsync(new CheckOutReservationDto { ReservationId = Guid.NewGuid() }));
+        }
+    }
+
+    /// <summary>008 FR-020: the enrolment gate refuses an out-of-band maintenance report too.</summary>
+    [Fact]
+    public async Task An_authenticated_non_member_cannot_report_maintenance()
+    {
+        var (_, _, instance) = await SeedCatalogDataAsync();
+        var maintenanceRequestAppService = GetRequiredService<IMaintenanceRequestAppService>();
+
+        using (AsAuthenticatedNonMember())
+        {
+            await Should.ThrowAsync<AbpAuthorizationException>(() => maintenanceRequestAppService.ReportAsync(new ReportMaintenanceDto
+            {
+                ToolInstanceId = instance.Id,
+                ObservedCondition = Catalog.ToolCondition.Good,
+                Reason = "Cracked"
+            }));
         }
     }
 }

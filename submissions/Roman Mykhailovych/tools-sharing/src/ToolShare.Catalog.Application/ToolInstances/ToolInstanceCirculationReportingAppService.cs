@@ -42,6 +42,13 @@ public class ToolInstanceCirculationReportingAppService : ApplicationService, IT
         await _toolInstanceRepository.UpdateAsync(instance, autoSave: true);
     }
 
+    public virtual async Task MarkSentToMaintenanceAsync(Guid toolInstanceId, ToolCondition observedCondition, string reason)
+    {
+        var instance = await _toolInstanceRepository.GetAsync(toolInstanceId);
+        instance.SendToMaintenance(observedCondition, reason, Clock.Now, CurrentUser.Id);
+        await _toolInstanceRepository.UpdateAsync(instance, autoSave: true);
+    }
+
     public virtual async Task MarkMaintenanceClosedAsync(Guid toolInstanceId)
     {
         var instance = await _toolInstanceRepository.GetAsync(toolInstanceId);

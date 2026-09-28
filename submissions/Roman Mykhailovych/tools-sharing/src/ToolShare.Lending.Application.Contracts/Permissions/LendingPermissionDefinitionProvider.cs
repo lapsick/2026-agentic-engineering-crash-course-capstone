@@ -15,6 +15,7 @@ public class LendingPermissionDefinitionProvider : PermissionDefinitionProvider
         loansPermission.AddChild(LendingPermissions.Loans.Return, L("Permission:Lending.Loans.Return"));
 
         lendingGroup.AddPermission(LendingPermissions.Maintenance.Close, L("Permission:Lending.Maintenance.Close"));
+        lendingGroup.AddPermission(LendingPermissions.Maintenance.Report, L("Permission:Lending.Maintenance.Report"));
 
         lendingGroup.AddPermission(LendingPermissions.Reports.Default, L("Permission:Lending.Reports"));
     }

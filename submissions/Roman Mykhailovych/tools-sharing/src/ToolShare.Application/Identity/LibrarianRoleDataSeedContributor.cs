@@ -60,6 +60,9 @@ public class LibrarianRoleDataSeedContributor : IDataSeedContributor, ITransient
         LendingPermissions.Loans.Checkout,
         LendingPermissions.Loans.Return,
         LendingPermissions.Maintenance.Close,
+        // 008-out-of-band-maintenance: sending an in-circulation instance to
+        // maintenance (FR-020); Administrator inherits it the same way.
+        LendingPermissions.Maintenance.Report,
         // 006-librarian-reports: the three librarian reports (FR-012). Adding it
         // here also grants Administrator, since MembershipRoleDataSeedContributor
         // composes its cumulative grants from this array.

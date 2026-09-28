@@ -21,6 +21,8 @@
     "Catalog:InstanceNotAvailableForLoan": "This instance is not available to be checked out.",
     "Catalog:InstanceNotOnLoan": "This instance is not currently on loan.",
     "Catalog:InstanceNotUnderMaintenance": "This instance does not have an open maintenance request.",
+    "Catalog:InstanceNotAvailableForMaintenance": "Only an instance that is in circulation and not on loan can be sent to maintenance.",
+    "Catalog:ObservedConditionBetterThanCurrent": "The observed condition can't be better than the instance's current condition.",
 
     "Catalog:CategoryNameAlreadyExists": "Another category already uses the name '{0}'.",
     "Catalog:CategoryHasTools": "This category cannot be deleted because it still has tools assigned to it.",

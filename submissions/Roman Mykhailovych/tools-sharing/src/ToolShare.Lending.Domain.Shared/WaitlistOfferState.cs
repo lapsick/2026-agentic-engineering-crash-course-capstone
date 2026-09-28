@@ -18,5 +18,11 @@ public enum WaitlistOfferState
     Confirmed = 2,
 
     /// <summary>Offer lapsed unconfirmed; the next entry (if any) is offered. Terminal.</summary>
-    Expired = 3
+    Expired = 3,
+
+    /// <summary>
+    /// 008 WL-07: offer withdrawn because the instance went under maintenance;
+    /// the member was re-queued with their original JoinedAt (WL-08). Terminal.
+    /// </summary>
+    Withdrawn = 4
 }

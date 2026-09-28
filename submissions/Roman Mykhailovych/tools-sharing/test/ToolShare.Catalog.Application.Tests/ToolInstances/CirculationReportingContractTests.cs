@@ -131,6 +131,81 @@ public class CirculationReportingContractTests : CatalogAuthorizationTestBase
         }
     }
 
+    // ---- 008-out-of-band-maintenance: MarkSentToMaintenanceAsync (IR-09) ----
+
+    [Fact]
+    public async Task MarkSentToMaintenanceAsync_moves_an_in_circulation_instance_under_maintenance_with_the_observed_condition()
+    {
+        var instanceId = await CreateInstanceAsync();
+
+        await _circulationReportingAppService.MarkSentToMaintenanceAsync(instanceId, ToolCondition.Worn, "Cracked blade guard");
+
+        var instance = await ToolInstanceAppService.GetAsync(instanceId);
+        instance.CirculationState.ShouldBe(ToolInstanceCirculationState.UnderMaintenance);
+        instance.Condition.ShouldBe(ToolCondition.Worn);
+        instance.IsAvailable.ShouldBeFalse();
+        instance.History.ShouldContain(h =>
+            h.NewCirculationState == ToolInstanceCirculationState.UnderMaintenance &&
+            h.Reason == "Cracked blade guard");
+    }
+
+    [Fact]
+    public async Task MarkSentToMaintenanceAsync_makes_the_instance_unavailable_to_lookup_consumers()
+    {
+        var instanceId = await CreateInstanceAsync();
+        var lookup = GetRequiredService<IToolInstanceLookupAppService>();
+
+        await _circulationReportingAppService.MarkSentToMaintenanceAsync(instanceId, ToolCondition.Good, "Frayed cord");
+
+        (await lookup.IsAvailableAsync(instanceId)).ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task An_instance_sent_to_maintenance_is_restored_by_MarkMaintenanceClosedAsync()
+    {
+        var instanceId = await CreateInstanceAsync();
+        await _circulationReportingAppService.MarkSentToMaintenanceAsync(instanceId, ToolCondition.Worn, "Cracked");
+
+        await _circulationReportingAppService.MarkMaintenanceClosedAsync(instanceId);
+
+        var instance = await ToolInstanceAppService.GetAsync(instanceId);
+        instance.CirculationState.ShouldBe(ToolInstanceCirculationState.InCirculation);
+        instance.Condition.ShouldBe(ToolCondition.Worn);
+    }
+
+    [Fact]
+    public async Task MarkSentToMaintenanceAsync_is_rejected_when_the_instance_is_on_loan()
+    {
+        var instanceId = await CreateInstanceAsync();
+        await _circulationReportingAppService.MarkOnLoanAsync(instanceId);
+
+        var exception = await Should.ThrowAsync<BusinessException>(() =>
+            _circulationReportingAppService.MarkSentToMaintenanceAsync(instanceId, ToolCondition.Good, "Cracked"));
+        exception.Code.ShouldBe("Catalog:InstanceNotAvailableForMaintenance");
+    }
+
+    [Fact]
+    public async Task MarkSentToMaintenanceAsync_is_rejected_for_a_better_observed_condition()
+    {
+        var instanceId = await CreateInstanceAsync();
+
+        var exception = await Should.ThrowAsync<BusinessException>(() =>
+            _circulationReportingAppService.MarkSentToMaintenanceAsync(instanceId, ToolCondition.New, "Cracked"));
+        exception.Code.ShouldBe("Catalog:ObservedConditionBetterThanCurrent");
+    }
+
+    [Fact]
+    public async Task MarkSentToMaintenanceAsync_requires_the_ReportLendingState_permission()
+    {
+        var instanceId = await CreateInstanceAsync();
+
+        using (AsAuthenticatedUserWithNoGrants())
+        {
+            await Should.ThrowAsync<AbpAuthorizationException>(() =>
+                _circulationReportingAppService.MarkSentToMaintenanceAsync(instanceId, ToolCondition.Good, "Cracked"));
+        }
+    }
+
     [Fact]
     public async Task A_Librarian_may_report_lending_state()
     {

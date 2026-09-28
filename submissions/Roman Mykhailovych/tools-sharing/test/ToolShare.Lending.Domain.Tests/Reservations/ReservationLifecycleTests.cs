@@ -114,6 +114,55 @@ public class ReservationLifecycleTests
         Should.Throw<BusinessException>(() => reservation.CancelForMaintenance(Now, "reason"));
     }
 
+    // ---- 008 RES-09: out-of-band cascade (FR-008) ----
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(5)]
+    public void CancelUncollectedForMaintenance_cancels_an_active_reservation_whether_or_not_it_has_started(int startsInDays)
+    {
+        var reservation = new Reservation(
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
+            DateOnly.FromDateTime(Now).AddDays(startsInDays),
+            DateOnly.FromDateTime(Now).AddDays(startsInDays + 3),
+            maxLoanTermDays: 14, createdAt: Now);
+
+        reservation.CancelUncollectedForMaintenance(Now, "  Instance taken out of circulation for maintenance.  ");
+
+        reservation.Status.ShouldBe(ReservationStatus.Cancelled);
+        reservation.CancelledAt.ShouldBe(Now);
+        reservation.CancellationReason.ShouldBe("Instance taken out of circulation for maintenance.");
+    }
+
+    [Fact]
+    public void CancelUncollectedForMaintenance_refuses_a_checked_out_reservation()
+    {
+        var reservation = CreateActiveReservation();
+        reservation.RealizeAsCheckedOut();
+
+        Should.Throw<BusinessException>(() => reservation.CancelUncollectedForMaintenance(Now, "reason"))
+            .Code.ShouldBe(LendingDomainErrorCodes.InvalidStateTransition);
+    }
+
+    [Fact]
+    public void CancelUncollectedForMaintenance_refuses_an_already_cancelled_reservation()
+    {
+        var reservation = CreateActiveReservation();
+        reservation.Cancel(Now);
+
+        Should.Throw<BusinessException>(() => reservation.CancelUncollectedForMaintenance(Now, "reason"))
+            .Code.ShouldBe(LendingDomainErrorCodes.InvalidStateTransition);
+    }
+
+    [Fact]
+    public void CancelUncollectedForMaintenance_refuses_a_reason_over_the_cancellation_limit()
+    {
+        var reservation = CreateActiveReservation();
+
+        Should.Throw<ArgumentException>(() => reservation.CancelUncollectedForMaintenance(
+            Now, new string('x', LendingDomainSharedConsts.CancellationReasonMaxLength + 1)));
+    }
+
     private static Reservation CreateActiveReservation()
     {
         return new Reservation(

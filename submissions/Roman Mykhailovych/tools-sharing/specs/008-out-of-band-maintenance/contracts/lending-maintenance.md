@@ -85,8 +85,10 @@ No reliability outcome is reported (MAINT-08) and no event or notification is ra
 - **Waitlist**: an `Offered` entry becomes `Withdrawn` (the new `WaitlistOfferState` value `4`), and
   its member is re-queued as `Waiting` with the original `JoinedAt`. `WaitlistEntryDto.OfferState`
   may therefore now carry `Withdrawn`.
-- **Reservation creation**: `ReservationAppService.CreateAsync` now takes the same instance lock
-  before its availability read. Its signature, rules, and errors are unchanged.
+- **Reservation creation and checkout**: `ReservationAppService.CreateAsync` and
+  `LoanAppService.CheckOutAsync` now take the same instance lock before their availability read
+  (checkout was added during implementation; see research R4, "Amended"). Their signatures, rules,
+  and errors are unchanged.
 
 ## `IReportAppService.GetMaintenanceCostAsync`: additive DTO fields
 

@@ -233,6 +233,44 @@ public class ToolInstance : FullAuditedAggregateRoot<Guid>
     }
 
     /// <summary>
+    /// Reports that a problem was found on an instance sitting in circulation
+    /// (008-out-of-band-maintenance, IR-09): Lending sends it directly to
+    /// <see cref="ToolInstanceCirculationState.UnderMaintenance"/>, recording
+    /// the observed condition if it is worse. The observed condition may equal
+    /// the current one — a safety defect need not move the tool down the
+    /// scale — but never improve on it. One history row carries both the
+    /// circulation change and <paramref name="reason"/>.
+    /// </summary>
+    public void SendToMaintenance(ToolCondition observedCondition, string reason, DateTime changedAt, Guid? changedByUserId)
+    {
+        if (CirculationState == ToolInstanceCirculationState.Retired)
+        {
+            throw new BusinessException("Catalog:InstanceIsRetired");
+        }
+
+        if (CirculationState != ToolInstanceCirculationState.InCirculation)
+        {
+            throw new BusinessException("Catalog:InstanceNotAvailableForMaintenance");
+        }
+
+        if ((int)observedCondition < (int)Condition)
+        {
+            throw new BusinessException("Catalog:ObservedConditionBetterThanCurrent");
+        }
+
+        reason = Check.NotNullOrWhiteSpace(reason, nameof(reason)).Trim();
+        Check.Length(reason, nameof(reason), CatalogDomainSharedConsts.ConditionChangeReasonMaxLength);
+
+        var previousCondition = Condition;
+        var previousCirculationState = CirculationState;
+        Condition = observedCondition;
+        CirculationState = ToolInstanceCirculationState.UnderMaintenance;
+
+        AppendHistory(previousCondition, Condition, previousCirculationState, CirculationState, reason, changedAt, changedByUserId);
+        RaiseStateChangedEvent(previousCondition, Condition, previousCirculationState, CirculationState, reason, changedAt, changedByUserId);
+    }
+
+    /// <summary>
     /// Reports that Lending's maintenance request against this instance has
     /// closed. Permitted only from <see cref="ToolInstanceCirculationState.UnderMaintenance"/>.
     /// <see cref="Condition"/> is left untouched — this feature does not model

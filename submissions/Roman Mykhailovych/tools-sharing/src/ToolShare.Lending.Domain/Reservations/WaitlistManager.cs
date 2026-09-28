@@ -49,4 +49,30 @@ public class WaitlistManager : DomainService
         next.Offer(at, windowHours);
         await _waitlistEntryRepository.UpdateAsync(next);
     }
+
+    /// <summary>
+    /// Enforces WL-07/WL-08 (008 research R6): an instance just went under
+    /// maintenance while one entry held an offer nobody can act on. Withdraw
+    /// it and re-queue the same member at their original place, so the expiry
+    /// worker has nothing to roll down the queue and closing the request
+    /// offers this member first — via the unchanged <see cref="OfferNextAsync"/>.
+    /// A no-op when no offer is outstanding.
+    /// </summary>
+    public async Task WithdrawOutstandingOfferAsync(Guid toolInstanceId, DateTime at)
+    {
+        var offered = await _waitlistEntryRepository.FindOfferedForInstanceAsync(toolInstanceId);
+        if (offered is null)
+        {
+            return;
+        }
+
+        offered.Withdraw(at);
+
+        // Saved before the insert: WL-02's filtered unique index allows only one
+        // Waiting/Offered entry per member and instance at a time.
+        await _waitlistEntryRepository.UpdateAsync(offered, autoSave: true);
+
+        var requeued = new WaitlistEntry(GuidGenerator.Create(), offered.MemberId, offered.ToolInstanceId, offered.JoinedAt);
+        await _waitlistEntryRepository.InsertAsync(requeued, autoSave: true);
+    }
 }

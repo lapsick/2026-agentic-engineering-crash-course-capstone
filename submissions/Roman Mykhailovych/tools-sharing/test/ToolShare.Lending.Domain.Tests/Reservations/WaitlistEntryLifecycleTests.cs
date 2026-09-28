@@ -68,4 +68,49 @@ public class WaitlistEntryLifecycleTests
         entry.Expire(offeredAt.AddHours(25));
         entry.OfferState.ShouldBe(WaitlistOfferState.Expired);
     }
+
+    // ---- 008 WL-07: an outstanding offer is withdrawn when the instance goes under maintenance ----
+
+    [Fact]
+    public void Withdraw_from_Offered_is_terminal_and_records_when()
+    {
+        var entry = new WaitlistEntry(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), JoinedAt);
+        entry.Offer(JoinedAt.AddDays(1), windowHours: 24);
+
+        entry.Withdraw(JoinedAt.AddDays(1).AddHours(2));
+
+        entry.OfferState.ShouldBe(WaitlistOfferState.Withdrawn);
+        entry.ResolvedAt.ShouldBe(JoinedAt.AddDays(1).AddHours(2));
+    }
+
+    [Fact]
+    public void Withdraw_is_refused_while_Waiting()
+    {
+        var entry = new WaitlistEntry(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), JoinedAt);
+
+        Should.Throw<BusinessException>(() => entry.Withdraw(JoinedAt.AddDays(1)))
+            .Code.ShouldBe(LendingDomainErrorCodes.InvalidStateTransition);
+    }
+
+    [Fact]
+    public void Withdraw_is_refused_once_the_offer_is_resolved()
+    {
+        var confirmed = new WaitlistEntry(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), JoinedAt);
+        confirmed.Offer(JoinedAt.AddDays(1), windowHours: 24);
+        confirmed.Confirm(Guid.NewGuid(), JoinedAt.AddDays(1).AddHours(1));
+
+        var expired = new WaitlistEntry(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), JoinedAt);
+        expired.Offer(JoinedAt.AddDays(1), windowHours: 24);
+        expired.Expire(JoinedAt.AddDays(3));
+
+        var withdrawn = new WaitlistEntry(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), JoinedAt);
+        withdrawn.Offer(JoinedAt.AddDays(1), windowHours: 24);
+        withdrawn.Withdraw(JoinedAt.AddDays(1).AddHours(1));
+
+        foreach (var entry in new[] { confirmed, expired, withdrawn })
+        {
+            Should.Throw<BusinessException>(() => entry.Withdraw(JoinedAt.AddDays(4)))
+                .Code.ShouldBe(LendingDomainErrorCodes.InvalidStateTransition);
+        }
+    }
 }

@@ -29,6 +29,7 @@ public class LoanAppService : ApplicationService, ILoanAppService
     private readonly IToolInstanceCirculationReportingAppService _toolInstanceCirculationReportingAppService;
     private readonly ICommunityRulesLookupAppService _communityRulesLookupAppService;
     private readonly IReliabilityReportingAppService _reliabilityReportingAppService;
+    private readonly IInstanceLock _instanceLock;
 
     public LoanAppService(
         ILoanRepository loanRepository,
@@ -40,8 +41,10 @@ public class LoanAppService : ApplicationService, ILoanAppService
         IToolInstanceLookupAppService toolInstanceLookupAppService,
         IToolInstanceCirculationReportingAppService toolInstanceCirculationReportingAppService,
         ICommunityRulesLookupAppService communityRulesLookupAppService,
-        IReliabilityReportingAppService reliabilityReportingAppService)
+        IReliabilityReportingAppService reliabilityReportingAppService,
+        IInstanceLock instanceLock)
     {
+        _instanceLock = instanceLock;
         _loanRepository = loanRepository;
         _reservationRepository = reservationRepository;
         _maintenanceRequestRepository = maintenanceRequestRepository;
@@ -58,6 +61,12 @@ public class LoanAppService : ApplicationService, ILoanAppService
     public virtual async Task<LoanDto> CheckOutAsync(CheckOutReservationDto input)
     {
         var reservation = await _reservationRepository.GetAsync(input.ReservationId);
+
+        // 008 research R4: serialize with an out-of-band maintenance report on
+        // the same instance before reading availability. Without it the two
+        // take the Reservation and ToolInstance row locks in opposite orders
+        // and can deadlock; with it the loser sees the winner's committed state.
+        await _instanceLock.LockInstanceAsync(reservation.ToolInstanceId);
 
         var instance = await _toolInstanceLookupAppService.FindAsync(reservation.ToolInstanceId)
             ?? throw new BusinessException(LendingDomainErrorCodes.InstanceUnavailable);

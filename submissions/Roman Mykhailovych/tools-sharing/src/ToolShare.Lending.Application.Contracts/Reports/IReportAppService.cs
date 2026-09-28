@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using ToolShare.Catalog;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 
@@ -100,4 +102,48 @@ public class MaintenanceCostReportDto
     public decimal TotalCost { get; set; }
 
     public int ClosedRequestCount { get; set; }
+
+    /// <summary>008 FR-018: Σ cost of in-range requests triggered by a worsened return.</summary>
+    public decimal ReturnTriggeredSubtotal { get; set; }
+
+    /// <summary>008 FR-018: Σ cost of in-range requests reported out-of-band. The two subtotals always add up to <see cref="TotalCost"/> (SC-005).</summary>
+    public decimal OutOfBandSubtotal { get; set; }
+
+    /// <summary>008 FR-018: every request closed in the range, ordered by closure — so each one's origin is visible.</summary>
+    public List<MaintenanceCostReportItemDto> Items { get; set; } = new();
+}
+
+/// <summary>
+/// One closed maintenance request in a cost report (008 FR-018). Loan fields
+/// are set for return-triggered requests, report fields for out-of-band ones.
+/// A <c>null</c> name means the referenced record could not be resolved; the
+/// row is still returned (006 B9).
+/// </summary>
+public class MaintenanceCostReportItemDto
+{
+    public Guid MaintenanceRequestId { get; set; }
+
+    public MaintenanceRequestOrigin Origin { get; set; }
+
+    public Guid ToolInstanceId { get; set; }
+
+    public string? ToolName { get; set; }
+
+    public string? SerialNumber { get; set; }
+
+    public DateTime OpenedAt { get; set; }
+
+    public DateTime ClosedAt { get; set; }
+
+    public decimal Cost { get; set; }
+
+    public Guid? TriggeringLoanId { get; set; }
+
+    public Guid? ReportedByMemberId { get; set; }
+
+    public string? ReportedByDisplayName { get; set; }
+
+    public string? ReportReason { get; set; }
+
+    public ToolCondition? ObservedCondition { get; set; }
 }

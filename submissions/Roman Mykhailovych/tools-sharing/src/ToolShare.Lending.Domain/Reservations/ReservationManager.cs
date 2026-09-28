@@ -80,4 +80,21 @@ public class ReservationManager : DomainService
             await _reservationRepository.UpdateAsync(reservation);
         }
     }
+
+    /// <summary>
+    /// Enforces RES-09 (008 research R5): cancels <b>every</b> Active — i.e.
+    /// not-yet-collected — reservation for an instance an out-of-band report
+    /// just took out of circulation, started or not. The return-triggered
+    /// cascade above keeps its own narrower rule (FR-022).
+    /// </summary>
+    public async Task CancelAllUncollectedForMaintenanceAsync(Guid toolInstanceId, DateTime at, string reason)
+    {
+        var reservations = await _reservationRepository.GetActiveForInstanceAsync(toolInstanceId);
+
+        foreach (var reservation in reservations)
+        {
+            reservation.CancelUncollectedForMaintenance(at, reason);
+            await _reservationRepository.UpdateAsync(reservation);
+        }
+    }
 }

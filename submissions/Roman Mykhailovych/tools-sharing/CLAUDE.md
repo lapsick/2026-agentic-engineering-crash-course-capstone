@@ -96,6 +96,9 @@ Inside `Domain`, `Application.Contracts`, and `Application`, code is organized b
 (e.g. `Categories/`, `Tools/`, `ToolInstances/`; `Reservations/`, `Loans/`, `Maintenance/`,
 `Reports/`), each with its entity, repository interface, app service, DTOs, and mapper. A slice
 need not appear in every layer: Lending's read-only `Reports/` has no entity or repository.
+Lending's `MaintenanceRequest` has two origins (a worsened return, or an out-of-band Librarian
+report, 008). `IInstanceLock`, a transaction-scoped PostgreSQL advisory lock per instance,
+serializes reservation creation, checkout, and out-of-band reports on the same instance.
 
 ### Spec Kit workflow
 

@@ -12,12 +12,19 @@
         <MudTh>Start</MudTh>
         <MudTh>End</MudTh>
         <MudTh>Status</MudTh>
+        <MudTh>Cancelled</MudTh>
+        <MudTh>Reason</MudTh>
         <MudTh></MudTh>
     </HeaderContent>
     <RowTemplate>
         <MudTd DataLabel="Start">@context.StartDate</MudTd>
         <MudTd DataLabel="End">@context.EndDate</MudTd>
         <MudTd DataLabel="Status">@context.Status</MudTd>
+        @* 008 FR-008: a reservation cancelled because its instance went to
+           maintenance tells its holder when and why — the only signal they
+           get, since no notification is sent (FR-009). *@
+        <MudTd DataLabel="Cancelled">@(context.CancelledAt?.ToLocalTime().ToString() ?? string.Empty)</MudTd>
+        <MudTd DataLabel="Reason">@context.CancellationReason</MudTd>
         <MudTd DataLabel="">
             @if (context.Status == ReservationStatus.Active)
             {
@@ -31,7 +38,10 @@
 </MudTable>
 
 <MudText Typo="Typo.h6" Class="mt-6 mb-2">Waitlist</MudText>
-<MudTable Items="_waitlistEntries" Hover="true" Dense="true">
+@* 008 WL-08: a withdrawn offer leaves a resolved entry behind next to the
+   member's re-queued one; by default show only current places in line. *@
+<MudSwitch T="bool" @bind-Value="_showResolvedWaitlistEntries" Label="Show past entries" Color="Color.Primary" />
+<MudTable Items="VisibleWaitlistEntries" Hover="true" Dense="true">
     <HeaderContent>
         <MudTh>Joined</MudTh>
         <MudTh>State</MudTh>
@@ -39,7 +49,7 @@
     </HeaderContent>
     <RowTemplate>
         <MudTd DataLabel="Joined">@context.JoinedAt.ToLocalTime()</MudTd>
-        <MudTd DataLabel="State">@context.OfferState</MudTd>
+        <MudTd DataLabel="State">@DescribeOfferState(context.OfferState)</MudTd>
         <MudTd DataLabel="Offer expires">@(context.OfferExpiresAt?.ToLocalTime().ToString() ?? "—")</MudTd>
     </RowTemplate>
     <NoRecordsContent>
@@ -50,6 +60,23 @@
 @code {
     private List<ReservationDto> _reservations = new();
     private List<WaitlistEntryDto> _waitlistEntries = new();
+    private bool _showResolvedWaitlistEntries;
+
+    private IEnumerable<WaitlistEntryDto> VisibleWaitlistEntries => _showResolvedWaitlistEntries
+        ? _waitlistEntries.OrderBy(e => e.JoinedAt)
+        : _waitlistEntries
+            .Where(e => e.OfferState is WaitlistOfferState.Waiting or WaitlistOfferState.Offered)
+            .OrderBy(e => e.JoinedAt);
+
+    private static string DescribeOfferState(WaitlistOfferState state) => state switch
+    {
+        WaitlistOfferState.Waiting => "Waiting",
+        WaitlistOfferState.Offered => "Offered to you",
+        WaitlistOfferState.Confirmed => "Confirmed",
+        WaitlistOfferState.Expired => "Offer expired",
+        WaitlistOfferState.Withdrawn => "Offer withdrawn (instance under maintenance)",
+        _ => state.ToString()
+    };
 
     protected override async Task OnInitializedAsync()
     {

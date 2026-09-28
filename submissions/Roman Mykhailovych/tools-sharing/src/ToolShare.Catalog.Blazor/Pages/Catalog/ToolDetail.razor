@@ -40,7 +40,7 @@
             <MudTd DataLabel="Serial number">@context.SerialNumber</MudTd>
             <MudTd DataLabel="Condition">@context.Condition</MudTd>
             <MudTd DataLabel="Status">
-                @(context.CirculationState == ToolInstanceCirculationState.Retired ? "Retired" : (context.IsAvailable ? "Available" : "Unavailable"))
+                @DescribeStatus(context)
             </MudTd>
             <MudTd DataLabel="">
                 @if (context.CirculationState != ToolInstanceCirculationState.Retired)
@@ -48,6 +48,10 @@
                     <MudButton Size="Size.Small" Color="Color.Primary" OnClick="() => NavigateToReserve(context.Id)">Reserve</MudButton>
                     <AuthorizeView Policy="@CatalogPermissions.ToolInstances.ChangeCondition" Context="authState">
                         <MudButton Size="Size.Small" OnClick="() => OpenChangeConditionDialog(context)">Change condition</MudButton>
+                        @if (context.CirculationState == ToolInstanceCirculationState.InCirculation)
+                        {
+                            <MudButton Size="Size.Small" Color="Color.Warning" OnClick="() => NavigateToReportDamage(context.Id)">Report damage</MudButton>
+                        }
                     </AuthorizeView>
                     <AuthorizeView Policy="@CatalogPermissions.ToolInstances.Retire" Context="authState">
                         <MudButton Size="Size.Small" Color="Color.Error" OnClick="() => OpenRetireDialog(context)">Retire</MudButton>
@@ -284,5 +288,24 @@
     private void NavigateToReserve(Guid instanceId)
     {
         NavigationManager.NavigateTo($"/lending/reserve/{instanceId}");
+    }
+
+    // 008 US1/AC1: an instance sent to maintenance (or on loan) says so, rather
+    // than a generic "Unavailable" — which now only means in circulation but
+    // not lendable (e.g. Damaged).
+    private static string DescribeStatus(ToolInstanceDto instance) => instance.CirculationState switch
+    {
+        ToolInstanceCirculationState.Retired => "Retired",
+        ToolInstanceCirculationState.UnderMaintenance => "Under maintenance",
+        ToolInstanceCirculationState.OnLoan => "On loan",
+        _ => instance.IsAvailable ? "Available" : "Unavailable"
+    };
+
+    // 008-out-of-band-maintenance: same URL-only composition as Reserve. The
+    // button is gated by Catalog's own ChangeCondition permission; the Lending
+    // page enforces Lending.Maintenance.Report itself (research R8).
+    private void NavigateToReportDamage(Guid instanceId)
+    {
+        NavigationManager.NavigateTo($"/lending/maintenance/report/{instanceId}");
     }
 }

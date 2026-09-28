@@ -56,10 +56,20 @@ public static class LendingDbContextModelCreatingExtensions
 
         builder.Entity<MaintenanceRequest>(b =>
         {
-            b.ToTable(LendingDbProperties.DbTablePrefix + "MaintenanceRequests", LendingDbProperties.DbSchema);
+            // 008 MAINT-04: exactly one origin shape per row — a return-triggered
+            // request has a loan and no report fields; an out-of-band request
+            // has all report fields and no loan. The migration adds "Origin"
+            // with DEFAULT 0, so every pre-008 row reads as ReturnTriggered.
+            b.ToTable(LendingDbProperties.DbTablePrefix + "MaintenanceRequests", LendingDbProperties.DbSchema, t =>
+                t.HasCheckConstraint(
+                    "CK_MaintenanceRequests_OriginShape",
+                    "(\"Origin\" = 0 AND \"TriggeringLoanId\" IS NOT NULL AND \"ReportedByMemberId\" IS NULL AND \"ReportReason\" IS NULL AND \"ObservedCondition\" IS NULL) " +
+                    "OR (\"Origin\" = 1 AND \"TriggeringLoanId\" IS NULL AND \"ReportedByMemberId\" IS NOT NULL AND \"ReportReason\" IS NOT NULL AND \"ObservedCondition\" IS NOT NULL)"));
             b.ConfigureByConvention();
 
-            // MAINT-01: at most one open (Status = 0) request per instance.
+            b.Property(x => x.ReportReason).HasMaxLength(LendingDomainSharedConsts.MaintenanceReportReasonMaxLength);
+
+            // MAINT-01: at most one open (Status = 0) request per instance, of either origin.
             b.HasIndex(x => x.ToolInstanceId)
                 .IsUnique()
                 .HasFilter("\"Status\" = 0");

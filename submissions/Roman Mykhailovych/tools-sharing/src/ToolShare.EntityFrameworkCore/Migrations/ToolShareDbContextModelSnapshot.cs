@@ -478,8 +478,21 @@ namespace ToolShare.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("LastModifierId");
 
+                    b.Property<int?>("ObservedCondition")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("OpenedAt")
                         .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("Origin")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ReportReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("ReportedByMemberId")
+                        .HasColumnType("uuid");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
@@ -487,7 +500,7 @@ namespace ToolShare.Migrations
                     b.Property<Guid>("ToolInstanceId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("TriggeringLoanId")
+                    b.Property<Guid?>("TriggeringLoanId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
@@ -496,7 +509,10 @@ namespace ToolShare.Migrations
                         .IsUnique()
                         .HasFilter("\"Status\" = 0");
 
-                    b.ToTable("MaintenanceRequests", "lending");
+                    b.ToTable("MaintenanceRequests", "lending", t =>
+                        {
+                            t.HasCheckConstraint("CK_MaintenanceRequests_OriginShape", "(\"Origin\" = 0 AND \"TriggeringLoanId\" IS NOT NULL AND \"ReportedByMemberId\" IS NULL AND \"ReportReason\" IS NULL AND \"ObservedCondition\" IS NULL) OR (\"Origin\" = 1 AND \"TriggeringLoanId\" IS NULL AND \"ReportedByMemberId\" IS NOT NULL AND \"ReportReason\" IS NOT NULL AND \"ObservedCondition\" IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("ToolShare.Lending.Reservations.Reservation", b =>

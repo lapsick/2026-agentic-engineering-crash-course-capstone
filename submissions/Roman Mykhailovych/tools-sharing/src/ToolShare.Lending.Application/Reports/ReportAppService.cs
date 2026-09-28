@@ -210,13 +210,80 @@ public class ReportAppService : ApplicationService, IReportAppService
                 .GroupBy(_ => 1)
                 .Select(g => new { TotalCost = g.Sum(r => r.Cost), ClosedRequestCount = g.Count() }));
 
+        // 008 FR-018: the same in-range set, split by origin and itemized. The
+        // total above keeps its exact 006 query; the subtotals are computed from
+        // the same predicate, so they always add up to it (SC-005).
+        var byOrigin = await AsyncExecuter.ToListAsync(
+            inRange
+                .GroupBy(r => r.Origin)
+                .Select(g => new { Origin = g.Key, Subtotal = g.Sum(r => r.Cost) }));
+
+        var closed = await AsyncExecuter.ToListAsync(inRange.OrderBy(r => r.ClosedAt));
+
         return new MaintenanceCostReportDto
         {
             From = from,
             To = to,
             TotalCost = summary?.TotalCost ?? 0m,
-            ClosedRequestCount = summary?.ClosedRequestCount ?? 0
+            ClosedRequestCount = summary?.ClosedRequestCount ?? 0,
+            ReturnTriggeredSubtotal = byOrigin.Where(x => x.Origin == MaintenanceRequestOrigin.ReturnTriggered).Sum(x => x.Subtotal) ?? 0m,
+            OutOfBandSubtotal = byOrigin.Where(x => x.Origin == MaintenanceRequestOrigin.OutOfBand).Sum(x => x.Subtotal) ?? 0m,
+            Items = await MapMaintenanceCostItemsAsync(closed)
         };
+    }
+
+    /// <summary>
+    /// Resolves tool names and reporter names in one batched call each; an
+    /// unresolvable reference leaves its name <c>null</c> and keeps the row (006 B9).
+    /// </summary>
+    private async Task<List<MaintenanceCostReportItemDto>> MapMaintenanceCostItemsAsync(List<MaintenanceRequest> closed)
+    {
+        if (closed.Count == 0)
+        {
+            return new List<MaintenanceCostReportItemDto>();
+        }
+
+        var instances = await _toolInstanceLookupAppService.GetByIdsAsync(
+            closed.Select(r => r.ToolInstanceId).Distinct().ToList());
+        var instancesById = instances.ToDictionary(i => i.Id);
+
+        var reporterIds = closed
+            .Where(r => r.ReportedByMemberId.HasValue)
+            .Select(r => r.ReportedByMemberId!.Value)
+            .Distinct()
+            .ToList();
+        var reportersById = reporterIds.Count == 0
+            ? new Dictionary<Guid, MemberStandingDto>()
+            : (await _memberStandingAppService.GetByIdsAsync(reporterIds))
+                .Where(s => s.MemberId.HasValue)
+                .ToDictionary(s => s.MemberId!.Value);
+
+        return closed.Select(r =>
+        {
+            instancesById.TryGetValue(r.ToolInstanceId, out var instance);
+            MemberStandingDto? reporter = null;
+            if (r.ReportedByMemberId.HasValue)
+            {
+                reportersById.TryGetValue(r.ReportedByMemberId.Value, out reporter);
+            }
+
+            return new MaintenanceCostReportItemDto
+            {
+                MaintenanceRequestId = r.Id,
+                Origin = r.Origin,
+                ToolInstanceId = r.ToolInstanceId,
+                ToolName = instance?.ToolName,
+                SerialNumber = instance?.SerialNumber,
+                OpenedAt = r.OpenedAt,
+                ClosedAt = r.ClosedAt!.Value,
+                Cost = r.Cost!.Value,
+                TriggeringLoanId = r.TriggeringLoanId,
+                ReportedByMemberId = r.ReportedByMemberId,
+                ReportedByDisplayName = reporter?.DisplayName,
+                ReportReason = r.ReportReason,
+                ObservedCondition = r.ObservedCondition
+            };
+        }).ToList();
     }
 
     /// <summary>

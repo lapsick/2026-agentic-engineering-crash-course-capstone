@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using ToolShare.Catalog.ToolInstances;
+using ToolShare.Lending.Maintenance;
 using ToolShare.Membership.CommunityRules;
 using ToolShare.Membership.Members;
 using Volo.Abp;
@@ -27,6 +28,7 @@ public class ReservationAppService : ApplicationService, IReservationAppService
     private readonly IToolInstanceLookupAppService _toolInstanceLookupAppService;
     private readonly IMemberStandingAppService _memberStandingAppService;
     private readonly ICommunityRulesLookupAppService _communityRulesLookupAppService;
+    private readonly IInstanceLock _instanceLock;
 
     public ReservationAppService(
         IReservationRepository reservationRepository,
@@ -35,8 +37,10 @@ public class ReservationAppService : ApplicationService, IReservationAppService
         WaitlistManager waitlistManager,
         IToolInstanceLookupAppService toolInstanceLookupAppService,
         IMemberStandingAppService memberStandingAppService,
-        ICommunityRulesLookupAppService communityRulesLookupAppService)
+        ICommunityRulesLookupAppService communityRulesLookupAppService,
+        IInstanceLock instanceLock)
     {
+        _instanceLock = instanceLock;
         _reservationRepository = reservationRepository;
         _waitlistEntryRepository = waitlistEntryRepository;
         _reservationManager = reservationManager;
@@ -50,6 +54,11 @@ public class ReservationAppService : ApplicationService, IReservationAppService
     {
         var standing = await GetOwnStandingOrThrowAsync();
         var rules = await _communityRulesLookupAppService.GetAsync();
+
+        // 008 research R4: serialize with an out-of-band maintenance report on
+        // the same instance *before* reading availability, so a reservation can
+        // never commit after that report's cancellation sweep and survive it.
+        await _instanceLock.LockInstanceAsync(input.ToolInstanceId);
         var isAvailable = await _toolInstanceLookupAppService.IsAvailableAsync(input.ToolInstanceId);
 
         var reservation = await _reservationManager.CreateAsync(

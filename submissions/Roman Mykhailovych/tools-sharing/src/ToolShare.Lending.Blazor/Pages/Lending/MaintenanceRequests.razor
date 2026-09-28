@@ -1,21 +1,39 @@
 @page "/lending/maintenance"
 @attribute [Authorize(LendingPermissions.Loans.Default)]
+@using ToolShare.Catalog.ToolInstances
 @using ToolShare.Lending.Maintenance
 @using ToolShare.Lending.Permissions
 @inherits LendingComponentBase
 @inject IMaintenanceRequestAppService MaintenanceRequestAppService
+@inject IToolInstanceLookupAppService ToolInstanceLookupAppService
 
 <MudText Typo="Typo.h4" Class="mb-4">@L["Menu:Lending.MaintenanceRequests"]</MudText>
 
+@* 008 FR-017: each open request shows its origin — the loan for a
+   return-triggered one; the reason and observed condition for an
+   out-of-band one. *@
 <MudTable Items="_requests" Hover="true" Dense="true">
     <HeaderContent>
-        <MudTh>Instance</MudTh>
-        <MudTh>Opened</MudTh>
+        <MudTh>@L["Maintenance:Tool"]</MudTh>
+        <MudTh>@L["Maintenance:Opened"]</MudTh>
+        <MudTh>@L["Maintenance:Origin"]</MudTh>
+        <MudTh>@L["Maintenance:Details"]</MudTh>
         <MudTh></MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd DataLabel="Instance">@context.ToolInstanceId</MudTd>
-        <MudTd DataLabel="Opened">@context.OpenedAt.ToLocalTime()</MudTd>
+        <MudTd DataLabel="@L["Maintenance:Tool"]">@DescribeInstance(context.ToolInstanceId)</MudTd>
+        <MudTd DataLabel="@L["Maintenance:Opened"]">@context.OpenedAt.ToLocalTime()</MudTd>
+        <MudTd DataLabel="@L["Maintenance:Origin"]">@L[$"Maintenance:Origin:{context.Origin}"]</MudTd>
+        <MudTd DataLabel="@L["Maintenance:Details"]">
+            @if (context.Origin == MaintenanceRequestOrigin.OutOfBand)
+            {
+                @($"{context.ReportReason} · {L["Maintenance:ObservedCondition"]}: {context.ObservedCondition}")
+            }
+            else
+            {
+                @($"{L["Maintenance:Loan"]} {context.TriggeringLoanId}")
+            }
+        </MudTd>
         <MudTd DataLabel="">
             <AuthorizeView Policy="@LendingPermissions.Maintenance.Close" Context="closeAuthState">
                 <MudButton Size="Size.Small" Color="Color.Primary" OnClick="() => OpenCloseDialog(context.Id)">Close</MudButton>
@@ -40,6 +58,7 @@
 
 @code {
     private List<MaintenanceRequestDto> _requests = new();
+    private Dictionary<Guid, ToolInstanceLookupDto> _instances = new();
     private bool _closeDialogOpen;
     private Guid _targetRequestId;
     private decimal _cost;
@@ -53,6 +72,16 @@
     {
         var result = await MaintenanceRequestAppService.GetOpenListAsync();
         _requests = result.Items.ToList();
+
+        var instances = await ToolInstanceLookupAppService.GetByIdsAsync(_requests.Select(r => r.ToolInstanceId).Distinct().ToList());
+        _instances = instances.ToDictionary(i => i.Id);
+    }
+
+    private string DescribeInstance(Guid toolInstanceId)
+    {
+        return _instances.TryGetValue(toolInstanceId, out var instance)
+            ? $"{instance.ToolName} {instance.SerialNumber}"
+            : toolInstanceId.ToString();
     }
 
     private void OpenCloseDialog(Guid requestId)

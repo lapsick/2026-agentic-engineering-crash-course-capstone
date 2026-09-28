@@ -1,0 +1,92 @@
+@page "/lending/maintenance/report/{ToolInstanceId:guid}"
+@attribute [Authorize(LendingPermissions.Maintenance.Report)]
+@using ToolShare.Catalog.ToolInstances
+@using ToolShare.Lending.Maintenance
+@using ToolShare.Lending.Permissions
+@inherits LendingComponentBase
+@inject IMaintenanceRequestAppService MaintenanceRequestAppService
+@inject IToolInstanceLookupAppService ToolInstanceLookupAppService
+@inject NavigationManager NavigationManager
+
+@* 008-out-of-band-maintenance US1: a Librarian sends an in-circulation instance
+   to maintenance from its tool page (FR-006). Reached by URL from Catalog's
+   ToolDetail, the same way Reserve is. *@
+
+<MudText Typo="Typo.h4" Class="mb-4">@L["Maintenance:ReportDamage"]</MudText>
+
+@if (_instance is not null)
+{
+    <MudPaper Class="pa-4 mb-4">
+        <MudText Typo="Typo.h6">@_instance.ToolName</MudText>
+        <MudText Typo="Typo.caption">@_instance.SerialNumber — @_instance.CategoryName</MudText>
+        <MudText Typo="Typo.body2" Class="mt-2">@L["Maintenance:CurrentCondition"]: @_instance.Condition</MudText>
+    </MudPaper>
+
+    <MudPaper Class="pa-4">
+        <MudSelect T="ToolCondition" Label="@L["Maintenance:ObservedCondition"]" @bind-Value="_observedCondition">
+            @foreach (var condition in AllowedConditions())
+            {
+                <MudSelectItem Value="condition">@condition</MudSelectItem>
+            }
+        </MudSelect>
+
+        <MudTextField T="string" Label="@L["Maintenance:Reason"]" @bind-Value="_reason"
+                      Lines="3" MaxLength="LendingDomainSharedConsts.MaintenanceReportReasonMaxLength"
+                      Counter="LendingDomainSharedConsts.MaintenanceReportReasonMaxLength" Required="true" Class="mt-2" />
+
+        <MudButtonGroup Class="mt-4">
+            <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="ReportAsync">@L["Maintenance:Submit"]</MudButton>
+            <MudButton OnClick="GoBackToTool">@L["Maintenance:Cancel"]</MudButton>
+        </MudButtonGroup>
+    </MudPaper>
+}
+else
+{
+    <MudAlert Severity="Severity.Warning">This instance could not be found.</MudAlert>
+}
+
+@code {
+    [Parameter] public Guid ToolInstanceId { get; set; }
+
+    private ToolInstanceLookupDto? _instance;
+    private ToolCondition _observedCondition;
+    private string _reason = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _instance = await ToolInstanceLookupAppService.FindAsync(ToolInstanceId);
+        if (_instance is not null)
+        {
+            _observedCondition = _instance.Condition;
+        }
+    }
+
+    /// <summary>MAINT-07: only conditions at least as bad as the current one are offered.</summary>
+    private IEnumerable<ToolCondition> AllowedConditions()
+    {
+        return Enum.GetValues<ToolCondition>().Where(c => _instance is null || (int)c >= (int)_instance.Condition);
+    }
+
+    private async Task ReportAsync()
+    {
+        var ok = await TryRunAsync(() => MaintenanceRequestAppService.ReportAsync(new ReportMaintenanceDto
+        {
+            ToolInstanceId = ToolInstanceId,
+            ObservedCondition = _observedCondition,
+            Reason = _reason
+        }));
+
+        if (ok)
+        {
+            GoBackToTool();
+        }
+    }
+
+    private void GoBackToTool()
+    {
+        if (_instance is not null)
+        {
+            NavigationManager.NavigateTo($"/catalog/tools/{_instance.ToolId}");
+        }
+    }
+}

@@ -48,4 +48,13 @@ public class EfCoreWaitlistEntryRepository : EfCoreRepository<LendingDbContext, 
             .Where(w => w.OfferState == WaitlistOfferState.Offered && w.OfferExpiresAt < asOf)
             .ToListAsync(GetCancellationToken(cancellationToken));
     }
+
+    public async Task<WaitlistEntry?> FindOfferedForInstanceAsync(Guid toolInstanceId, CancellationToken cancellationToken = default)
+    {
+        var queryable = await GetQueryableAsync();
+
+        return await queryable
+            .Where(w => w.ToolInstanceId == toolInstanceId && w.OfferState == WaitlistOfferState.Offered)
+            .FirstOrDefaultAsync(GetCancellationToken(cancellationToken));
+    }
 }

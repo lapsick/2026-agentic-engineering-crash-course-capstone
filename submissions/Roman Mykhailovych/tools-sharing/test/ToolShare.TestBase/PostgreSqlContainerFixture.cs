@@ -20,8 +20,17 @@ public class PostgreSqlContainerFixture : IAsyncLifetime
 {
     private const string TemplateDatabaseName = "toolshare_template";
 
+    /// <summary>
+    /// Per cloned database. Generous for the parallel calls concurrency tests
+    /// make (a handful at once), but bounded so one database can never hold a
+    /// large share of the server's <c>max_connections</c>.
+    /// </summary>
+    private const int MaxPoolSizePerDatabase = 10;
+
     private readonly SemaphoreSlim _templateMigrationLock = new(1, 1);
+    private readonly object _previousDatabaseLock = new();
     private bool _templateMigrated;
+    private string? _previousDatabaseConnectionString;
 
     private PostgreSqlContainer _container = null!;
 
@@ -83,6 +92,8 @@ public class PostgreSqlContainerFixture : IAsyncLifetime
     /// <summary>Clones a fresh database from the migrated template for one test class.</summary>
     public async Task<string> CreateDatabaseAsync()
     {
+        ReleasePreviousDatabaseConnections();
+
         var databaseName = $"test_{Guid.NewGuid():N}";
 
         var maintenanceConnectionStringBuilder = new NpgsqlConnectionStringBuilder(TemplateConnectionString)
@@ -101,10 +112,45 @@ public class PostgreSqlContainerFixture : IAsyncLifetime
 
         var databaseConnectionStringBuilder = new NpgsqlConnectionStringBuilder(TemplateConnectionString)
         {
-            Database = databaseName
+            Database = databaseName,
+            MaxPoolSize = MaxPoolSizePerDatabase
         };
 
-        return databaseConnectionStringBuilder.ConnectionString;
+        var connectionString = databaseConnectionStringBuilder.ConnectionString;
+        lock (_previousDatabaseLock)
+        {
+            _previousDatabaseConnectionString = connectionString;
+        }
+
+        return connectionString;
+    }
+
+    /// <summary>
+    /// Closes the idle pooled connections of the database handed out last.
+    /// Tests within one assembly run sequentially, so by the time the next
+    /// test asks for a database the previous test's application has been
+    /// disposed and nothing uses its pool any more. Without this, every
+    /// cloned database keeps its idle connections open for the rest of the
+    /// run, and a large suite eventually exhausts <c>max_connections</c>
+    /// ("53300: sorry, too many clients already"). Connections still in use
+    /// (none, in a sequential run) would be closed when returned to the pool.
+    /// </summary>
+    private void ReleasePreviousDatabaseConnections()
+    {
+        string? previous;
+        lock (_previousDatabaseLock)
+        {
+            previous = _previousDatabaseConnectionString;
+            _previousDatabaseConnectionString = null;
+        }
+
+        if (previous is null)
+        {
+            return;
+        }
+
+        using var connection = new NpgsqlConnection(previous);
+        NpgsqlConnection.ClearPool(connection);
     }
 
     public async Task DisposeAsync()

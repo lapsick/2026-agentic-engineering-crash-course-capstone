@@ -21,4 +21,15 @@ public interface IToolInstanceCirculationReportingAppService : IApplicationServi
     Task MarkReturnedForMaintenanceAsync(Guid toolInstanceId, ToolCondition returnedCondition);
 
     Task MarkMaintenanceClosedAsync(Guid toolInstanceId);
+
+    /// <summary>
+    /// 008-out-of-band-maintenance: a problem found on an instance that is in
+    /// circulation and not on loan. Moves it InCirculation → UnderMaintenance
+    /// and, if <paramref name="observedCondition"/> is worse, records it.
+    /// Appends exactly one history row carrying <paramref name="reason"/> and
+    /// raises <see cref="ToolInstanceStateChangedEto"/>. Closed by the existing
+    /// <see cref="MarkMaintenanceClosedAsync"/>. Additive to this Tier 1
+    /// contract — see specs/008-out-of-band-maintenance/contracts/catalog-extension.md.
+    /// </summary>
+    Task MarkSentToMaintenanceAsync(Guid toolInstanceId, ToolCondition observedCondition, string reason);
 }

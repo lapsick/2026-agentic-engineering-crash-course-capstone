@@ -20,6 +20,9 @@ public static class LendingPermissions
     public static class Maintenance
     {
         public const string Close = GroupName + ".Maintenance.Close";
+
+        /// <summary>008: send an in-circulation instance to maintenance out-of-band.</summary>
+        public const string Report = GroupName + ".Maintenance.Report";
     }
 
     /// <summary>

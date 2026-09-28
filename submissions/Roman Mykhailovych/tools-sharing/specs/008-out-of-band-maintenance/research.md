@@ -124,11 +124,20 @@ operations take it **first, before reading Catalog state**: `ReservationAppServi
 also covers claiming a waitlist offer, since that is the same operation) and the new
 `MaintenanceRequestAppService.ReportAsync`. The lock is released on commit or rollback.
 
+**Amended during implementation (2026-09-28)**: `LoanAppService.CheckOutAsync` takes the same lock
+too, right after loading the reservation and before reading availability. The race test
+(`ReportVersusCheckoutConcurrencyTests`) showed that relying on the Catalog concurrency stamp
+alone could deadlock. Checkout locks the `Reservation` row and then the `ToolInstance` row, while
+the report locks `ToolInstance` and then `Reservation` in its cancellation sweep. PostgreSQL
+killed one transaction, and the other then failed its stamp, so neither won. With the lock, the
+loser reads the winner's committed state and is refused cleanly (`InstanceUnavailable`, or
+`InstanceOnLoanRecordAtReturn`). The return flow is untouched (FR-022).
+
 Other races are already covered:
 
 | Race | Authority |
 |---|---|
-| Report vs checkout | Catalog row concurrency stamp and `InCirculation` guard, inside the shared transaction |
+| Report vs checkout | The advisory lock (amended above), backed by the Catalog row concurrency stamp and `InCirculation` guard inside the shared transaction |
 | Report vs report | Filtered unique index (open request per instance), plus the advisory lock |
 | Report vs reservation | Advisory lock (new) |
 | Report vs Catalog retire | Catalog row concurrency stamp |
@@ -323,7 +332,18 @@ Testcontainers `PostgreSqlContainerFixture`.
     on one instance. Each asserts the invariant of FR-014.
   - **Non-regression**: the existing 004/006 test classes run unmodified.
 - **Migration shape**, in `ToolShare.Lending.Application.Tests`, whose fixture migrates the template
-  DB: the migration applies. Existing rows read as
+  DB: the migration applies.
+
+**Amended during implementation (2026-09-28)**: the first full green-gate run of
+`ToolShare.Lending.Application.Tests` (139 tests) failed with `53300: sorry, too many clients
+already`, although every filtered run had passed. Every per-test cloned database kept its idle
+Npgsql connections open for the rest of the run. At the user's direction, two things changed:
+1. The shared `test/ToolShare.TestBase/PostgreSqlContainerFixture.cs` caps each cloned database's
+   pool at 10 and clears the previous database's pool when the next one is created. This is safe
+   because tests within an assembly run sequentially. The change benefits every module's suite and
+   is documented in `test/README.md`.
+2. The three `ReportVersus*ConcurrencyTests` run 3 iterations instead of 5. Their assertions are
+   unchanged. The next gate run passed 139/139 with no automatic fixes. Existing rows read as
   `ReturnTriggered` with their loan, and the `CHECK` constraint rejects a mixed-shape row.
 
 ---

@@ -88,4 +88,22 @@ public class WaitlistEntry : FullAuditedAggregateRoot<Guid>
         OfferState = WaitlistOfferState.Expired;
         ResolvedAt = at;
     }
+
+    /// <summary>
+    /// Enforces WL-07 (008-out-of-band-maintenance): the instance went under
+    /// maintenance while this entry held an offer. Terminal — the member is
+    /// re-queued as a new entry carrying this entry's <see cref="JoinedAt"/>
+    /// (WL-08, <see cref="WaitlistManager"/>), so no write-once field here is
+    /// ever reset (004 research R6).
+    /// </summary>
+    public void Withdraw(DateTime at)
+    {
+        if (OfferState != WaitlistOfferState.Offered)
+        {
+            throw new BusinessException(LendingDomainErrorCodes.InvalidStateTransition);
+        }
+
+        OfferState = WaitlistOfferState.Withdrawn;
+        ResolvedAt = at;
+    }
 }
