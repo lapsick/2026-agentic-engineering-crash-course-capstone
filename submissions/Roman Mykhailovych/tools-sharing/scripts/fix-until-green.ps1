@@ -1,8 +1,9 @@
 <#
 .SYNOPSIS
     Fix until green: runs `dotnet test <Project>` + the module-boundary audit and,
-    while either is red, lets a headless `claude -p` fix src/ (one failure per
-    iteration) until green.
+    while either is red, lets the headless toolshare-fixer agent (.claude/agents) fix src/
+    (all listed failures per iteration) until green. -SkipInitialAudit: the caller already
+    ran the audit green, so the first run skips it (it always runs after an agent edit).
 
     Exit codes: 0 GREEN, 1 MAX_ITERATIONS, 2 NO_PROGRESS (same failures twice),
     3 VIOLATION (agent touched test/ or the audit script), 4 AGENT_ERROR,
@@ -16,7 +17,8 @@ param(
     [Parameter(Mandatory = $true)][string]$Project,
     [string]$Filter,
     [int]$MaxIterations = 5,
-    [string]$Model = 'sonnet'
+    [string]$Model = 'sonnet',
+    [switch]$SkipInitialAudit
 )
 
 $ErrorActionPreference = 'Stop'
@@ -59,6 +61,7 @@ function Get-Failures([string]$dir) {
         if ($failures.Count -eq 0) { $failures = @("dotnet test exited $testExitCode") }
     }
 
+    if ($i -eq 1 -and $SkipInitialAudit) { return $failures }
     $audit = & pwsh -NoProfile -File scripts/check-module-boundaries.ps1 2>&1 | ForEach-Object { "$_" }
     if ($LASTEXITCODE -ne 0) {
         $failures += @($audit | Where-Object { $_ -match ' -> ' } | ForEach-Object { "module boundary violation (Constitution II): $($_.Trim())" })
@@ -103,20 +106,18 @@ while ($true) {
 
     if ($i -gt $MaxIterations) { Finish 'MAX_ITERATIONS' 1 }
 
+    # The rules live in .claude/agents/toolshare-fixer.md; the prompt is just this iteration's red list.
     $prompt = @"
-Automated fix loop, iteration $i of $MaxIterations, in the ToolShare repository. ``dotnet test $Project`` and/or the module-boundary audit (scripts/check-module-boundaries.ps1) are red:
+Fix loop iteration $i of $MaxIterations. ``dotnet test $Project`` and/or the module-boundary audit are red:
 
 $($failures -join "`n")
-
-Fix exactly ONE failure — the first one listed — with a minimal change to production code under src/. Read the failing test first; the XML doc comments on the production code describe the intended rule.
-- Never modify anything under test/ or scripts/check-module-boundaries.ps1 — the loop aborts if you do.
-- Never add a ProjectReference to another module's Domain or EntityFrameworkCore project; cross-module code goes through *.Application.Contracts or ILocalEventBus events (Constitution II).
-- You may run dotnet build; don't run the tests — the loop does.
-End with exactly one line: FIXED: <file> — <what was wrong and what you changed>  or  BLOCKED: <reason>
 "@
 
+    # --agent limits the tool schemas to the fixer's own; no MCP servers, no skill listing —
+    # a much smaller fixed context re-read on every turn.
     $before = Get-Snapshot
-    $json = $prompt | & claude -p --output-format json --model $Model --permission-mode acceptEdits `
+    $json = $prompt | & claude -p --agent toolshare-fixer --output-format json --model $Model --permission-mode acceptEdits `
+        --strict-mcp-config --disable-slash-commands `
         --allowedTools Read Edit Glob Grep 'Bash(dotnet build:*)' `
         --disallowedTools Write 'Bash(git:*)' 'Bash(dotnet test:*)' `
         --max-turns 25 --max-budget-usd 2 2>&1
@@ -132,9 +133,10 @@ End with exactly one line: FIXED: <file> — <what was wrong and what you change
     $cost += [decimal]$result.total_cost_usd
 
     $lines = @("$($result.result)" -split "`r?`n" | Where-Object { $_.Trim() })
-    $verdict = @($lines | Where-Object { $_ -match '(FIXED|BLOCKED):' })[-1]
-    if (-not $verdict) { $verdict = $lines[-1] }
-    Say "    agent ($($result.num_turns) turns, `$$([math]::Round([decimal]$result.total_cost_usd, 4))): $("$verdict".Trim().Trim('`'))" 'Magenta'
+    $verdicts = @($lines | Where-Object { $_ -match '(FIXED|BLOCKED):' })
+    if (-not $verdicts) { $verdicts = @($lines[-1]) }
+    Say "    agent ($($result.num_turns) turns, `$$([math]::Round([decimal]$result.total_cost_usd, 4))):" 'Magenta'
+    $verdicts | ForEach-Object { Say "      $("$_".Trim().Trim('`'))" 'Magenta' }
 
     $changed = @(@($before.Keys) + @($after.Keys) | Sort-Object -Unique | Where-Object { $before[$_] -ne $after[$_] })
     $changed | ForEach-Object { Say "      ~ $_" 'DarkGray' }

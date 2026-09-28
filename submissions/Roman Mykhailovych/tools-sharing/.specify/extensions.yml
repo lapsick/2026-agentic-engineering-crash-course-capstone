@@ -30,3 +30,17 @@ hooks:
       prompt: Review this feature's changes against the constitution and spec before commit/PR
       description: Runs the toolshare-reviewer subagent (.claude/agents) on the diff vs main and saves the report under reviews/
       condition: null
+
+  after_converge:
+    # Final browser acceptance, once, at the very end (after the gate, review
+    # fixes and converge): the Playwright suite starts the whole app, so it
+    # never runs inside the gate or its fix loops. Check-only; skipped when the
+    # feature touches no Blazor code; refused while tasks are open or the gate
+    # isn't PASS for the current working tree.
+    - extension: e2e-check
+      command: speckit.e2e.check
+      enabled: true
+      optional: false
+      prompt: Run the browser E2E suite once as the final acceptance before commit/PR
+      description: Runs scripts/speckit-e2e.ps1 (test/ToolShare.E2E.Tests, Playwright) once; traces + screenshots of failed tests under green-runs/<timestamp>-e2e/
+      condition: null

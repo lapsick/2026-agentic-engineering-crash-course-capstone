@@ -1,0 +1,8 @@
+{
+  "description": "Lending Loans table gets a foreign key into Catalog's ToolInstances (Constitution III: no cross-schema FKs)",
+  "expect": "Blocking",
+  "mustMention": [["LendingDbContextModelCreatingExtensions"], ["foreign key", "FK", "HasForeignKey", "HasOne"]],
+  "edits": [
+    { "file": "src/ToolShare.Lending.EntityFrameworkCore/EntityFrameworkCore/LendingDbContextModelCreatingExtensions.cs", "find": "b.ToTable(LendingDbProperties.DbTablePrefix + \"Loans\", LendingDbProperties.DbSchema);\n            b.ConfigureByConvention();", "replace": "b.ToTable(LendingDbProperties.DbTablePrefix + \"Loans\", LendingDbProperties.DbSchema);\n            b.ConfigureByConvention();\n\n            b.HasOne<ToolShare.Catalog.ToolInstances.ToolInstance>().WithMany().HasForeignKey(x => x.ToolInstanceId);" }
+  ]
+}

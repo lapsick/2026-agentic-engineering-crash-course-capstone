@@ -1,0 +1,7 @@
+{
+  "description": "Loan.DaysOverdueAsOf is off by one day",
+  "project": "test/ToolShare.Lending.Domain.Tests/ToolShare.Lending.Domain.Tests.csproj",
+  "edits": [
+    { "file": "src/ToolShare.Lending.Domain/Loans/Loan.cs", "find": "return IsOverdueAsOf(asOf) ? asOf.DayNumber - PlannedReturnDate.DayNumber : 0;", "replace": "return IsOverdueAsOf(asOf) ? asOf.DayNumber - PlannedReturnDate.DayNumber + 1 : 0;" }
+  ]
+}

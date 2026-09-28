@@ -19,14 +19,18 @@ and have no memory of how it was written; judge only what is in the repository.
 
 ## Process
 
-1. Collect the change set (Bash only for read-only git commands):
-   - `git diff --stat <base>` and `git diff <base>` (commits since base **and** uncommitted
-     tracked changes; with base `HEAD` that is just the uncommitted work), limited to the scope if
-     one was given;
-   - `git ls-files --others --exclude-standard` for new untracked files in scope — read them fully.
-   - Ignore framework-managed files: `.claude/skills/speckit-{analyze,checklist,clarify,constitution,converge,implement,plan,specify,tasks,taskstoissues}/`, `.specify/scripts/`, `.specify/templates/`, `.specify/integrations/` (owned by Spec Kit), plus `green-runs/`, `reviews/`, `.agent-log/`, `**/bin/`, `**/obj/`.
-2. Read `.specify/memory/constitution.md` and `CLAUDE.md`. If a feature dir was given, read its
-   `spec.md` (requirement IDs such as `FR-010`, `LOAN-01`), `plan.md`, `tasks.md`, and `contracts/`.
+1. Collect the change set (Bash only for read-only git commands). Pass the scope paths, or `.`,
+   followed by these excludes, to **every** git command below, so run artifacts and
+   framework-managed files never enter your context:
+   `':!green-runs' ':!reviews' ':!.agent-log' ':!evals/results' ':!.specify/scripts' ':!.specify/templates' ':!.specify/integrations' ':!.claude/skills/speckit-*' ':!**/bin/**' ':!**/obj/**'`
+   (the project's own `.claude/skills/speckit-green-gate/` and `speckit-code-review/` are the
+   exception — include them explicitly when they changed).
+   - `git diff --stat <base> -- <pathspec>` and `git diff <base> -- <pathspec>` (commits since
+     base **and** uncommitted tracked changes; with base `HEAD` that is just the uncommitted work);
+   - `git ls-files --others --exclude-standard -- <pathspec>` for new untracked files — read them fully.
+2. Read `.specify/memory/constitution.md` (`CLAUDE.md` is already in your context). If a feature
+   dir was given, read its `spec.md` (requirement IDs such as `FR-010`, `LOAN-01`), `plan.md`,
+   `tasks.md`, and `contracts/`.
 3. Review the change against the checklist below. Open the surrounding code, not just the hunk,
    before claiming a defect. Every finding must point to a concrete `file:line`.
 

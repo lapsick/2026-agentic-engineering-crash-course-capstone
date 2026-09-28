@@ -1,3 +1,9 @@
+---
+paths:
+  - "specs/**"
+  - ".specify/**"
+---
+
 # Spec Kit implement + test gate: run the tests once
 
 This repo registers a mandatory `after_implement` hook in `.specify/extensions.yml`:
@@ -18,10 +24,15 @@ A second `after_implement` hook, `speckit.code.review` → `/speckit-code-review
 gate: an independent review by the read-only `toolshare-reviewer` subagent (`.claude/agents/`),
 saved under `reviews/`. It is skipped when the gate failed and never re-runs the tests. Don't
 self-review the implementation in the implementing context instead — the point is maker ≠ checker.
-Before commit/PR the order is: `/speckit-implement` → gate → review → fix findings → gate → review.
+Then `/speckit-converge`; its `after_converge` hook, `speckit.e2e.check` → `/speckit-e2e-check`
+(`scripts/speckit-e2e.ps1`), runs the browser E2E suite (`test/ToolShare.E2E.Tests`, Playwright)
+exactly once, check-only, as the final acceptance. E2E is never part of the gate or its fix loops,
+and don't run it yourself earlier "to be sure" — one run takes minutes.
+Before commit/PR the order is: `/speckit-implement` → gate → review → fix findings → gate → review
+→ `/speckit-converge` → E2E.
 
 Why this lives here and not in `.claude/skills/speckit-implement/SKILL.md`: that file is owned by
 Spec Kit (listed with a hash in `.specify/integrations/claude.manifest.json`) and is overwritten on
 upgrade. `.claude/rules/`, `.claude/agents/`, `.specify/extensions.yml`,
-`.claude/skills/speckit-green-gate/`, and `.claude/skills/speckit-code-review/` are not in any Spec
-Kit manifest, so they survive upgrades.
+`.claude/skills/speckit-green-gate/`, `.claude/skills/speckit-code-review/`, and
+`.claude/skills/speckit-e2e-check/` are not in any Spec Kit manifest, so they survive upgrades.

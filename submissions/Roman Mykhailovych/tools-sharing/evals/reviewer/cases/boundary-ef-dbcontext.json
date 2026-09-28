@@ -1,0 +1,10 @@
+{
+  "description": "Lending app service injects Catalog's DbContext (Constitution II: cross-module EntityFrameworkCore reference)",
+  "expect": "Blocking",
+  "mustMention": [["LoanAppService"], ["CatalogDbContext", "EntityFrameworkCore"]],
+  "edits": [
+    { "file": "src/ToolShare.Lending.Application/Loans/LoanAppService.cs", "find": "using ToolShare.Catalog.ToolInstances;\n", "replace": "using ToolShare.Catalog.EntityFrameworkCore;\nusing ToolShare.Catalog.ToolInstances;\n" },
+    { "file": "src/ToolShare.Lending.Application/Loans/LoanAppService.cs", "find": "    private readonly ICommunityRulesLookupAppService _communityRulesLookupAppService;", "replace": "    private readonly ICommunityRulesLookupAppService _communityRulesLookupAppService;\n    private readonly CatalogDbContext _catalogDbContext;" },
+    { "file": "src/ToolShare.Lending.Application/Loans/LoanAppService.cs", "find": "        var loan = await _loanRepository.GetAsync(loanId);\n        var at = Clock.Now;", "replace": "        var loan = await _loanRepository.GetAsync(loanId);\n        var instanceRow = await _catalogDbContext.ToolInstances.FindAsync(loan.ToolInstanceId);\n        var at = Clock.Now;" }
+  ]
+}

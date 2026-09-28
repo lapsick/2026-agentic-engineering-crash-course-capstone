@@ -1,0 +1,7 @@
+{
+  "description": "Member rating is no longer clamped at the upper bound (Math.Clamp became Math.Max)",
+  "project": "test/ToolShare.Membership.Domain.Tests/ToolShare.Membership.Domain.Tests.csproj",
+  "edits": [
+    { "file": "src/ToolShare.Membership.Domain/Members/Member.cs", "find": "Math.Clamp(previousRating + rawPoints, MembershipDomainSharedConsts.MinRating, MembershipDomainSharedConsts.MaxRating)", "replace": "Math.Max(previousRating + rawPoints, MembershipDomainSharedConsts.MinRating)" }
+  ]
+}

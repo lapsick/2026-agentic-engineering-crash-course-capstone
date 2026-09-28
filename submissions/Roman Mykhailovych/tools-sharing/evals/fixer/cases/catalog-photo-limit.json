@@ -1,0 +1,7 @@
+{
+  "description": "ToolInstance accepts one photo over the limit (>= became >)",
+  "project": "test/ToolShare.Catalog.Domain.Tests/ToolShare.Catalog.Domain.Tests.csproj",
+  "edits": [
+    { "file": "src/ToolShare.Catalog.Domain/ToolInstances/ToolInstance.cs", "find": "if (Photos.Count >= maxPhotos)", "replace": "if (Photos.Count > maxPhotos)" }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "description": "MaintenanceRequest.Close rejects an explicit zero cost (< 0 became <= 0)",
+  "project": "test/ToolShare.Lending.Domain.Tests/ToolShare.Lending.Domain.Tests.csproj",
+  "edits": [
+    { "file": "src/ToolShare.Lending.Domain/Maintenance/MaintenanceRequest.cs", "find": "if (cost is null || cost < 0)", "replace": "if (cost is null || cost <= 0)" }
+  ]
+}

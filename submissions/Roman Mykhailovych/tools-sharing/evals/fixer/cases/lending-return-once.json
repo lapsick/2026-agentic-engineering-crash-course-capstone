@@ -1,0 +1,7 @@
+{
+  "description": "Loan.Return allows a second return unless the loan is overdue (guard weakened)",
+  "project": "test/ToolShare.Lending.Domain.Tests/ToolShare.Lending.Domain.Tests.csproj",
+  "edits": [
+    { "file": "src/ToolShare.Lending.Domain/Loans/Loan.cs", "find": "if (ReturnedAt.HasValue)\n        {\n            throw new BusinessException(LendingDomainErrorCodes.InvalidStateTransition);\n        }\n\n        ReturnedAt = returnedAt;", "replace": "if (ReturnedAt.HasValue && IsOverdue)\n        {\n            throw new BusinessException(LendingDomainErrorCodes.InvalidStateTransition);\n        }\n\n        ReturnedAt = returnedAt;" }
+  ]
+}

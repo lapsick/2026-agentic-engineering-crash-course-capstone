@@ -44,6 +44,7 @@
     <Project Path="test/ToolShare.Catalog.Application.Tests/ToolShare.Catalog.Application.Tests.csproj" />
     <Project Path="test/ToolShare.Catalog.Domain.Tests/ToolShare.Catalog.Domain.Tests.csproj" />
     <Project Path="test/ToolShare.Domain.Tests/ToolShare.Domain.Tests.csproj" />
+    <Project Path="test/ToolShare.E2E.Tests/ToolShare.E2E.Tests.csproj" />
     <Project Path="test/ToolShare.EntityFrameworkCore.Tests/ToolShare.EntityFrameworkCore.Tests.csproj" />
     <Project Path="test/ToolShare.Lending.Application.Tests/ToolShare.Lending.Application.Tests.csproj" />
     <Project Path="test/ToolShare.Lending.Domain.Tests/ToolShare.Lending.Domain.Tests.csproj" />

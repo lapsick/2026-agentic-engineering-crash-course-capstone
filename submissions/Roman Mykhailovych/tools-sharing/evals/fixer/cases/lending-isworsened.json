@@ -1,0 +1,7 @@
+{
+  "description": "Loan.IsWorsened counts an unchanged condition as worsened (> became >=)",
+  "project": "test/ToolShare.Lending.Domain.Tests/ToolShare.Lending.Domain.Tests.csproj",
+  "edits": [
+    { "file": "src/ToolShare.Lending.Domain/Loans/Loan.cs", "find": "ReturnedCondition.Value > ConditionAtCheckout;", "replace": "ReturnedCondition.Value >= ConditionAtCheckout;" }
+  ]
+}

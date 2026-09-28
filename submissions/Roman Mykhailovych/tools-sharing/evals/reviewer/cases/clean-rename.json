@@ -1,0 +1,8 @@
+{
+  "description": "CLEAN: a behavior-preserving local variable rename in the domain",
+  "expect": "Clean",
+  "mustMention": [],
+  "edits": [
+    { "file": "src/ToolShare.Lending.Domain/Reservations/Reservation.cs", "find": "        var days = endDate.DayNumber - startDate.DayNumber;\n        if (days > maxLoanTermDays)", "replace": "        var termDays = endDate.DayNumber - startDate.DayNumber;\n        if (termDays > maxLoanTermDays)" }
+  ]
+}

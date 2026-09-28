@@ -1,0 +1,8 @@
+{
+  "description": "Blazor host migrates the database on every start (Constitution VI: migrations only via DbMigrator)",
+  "expect": "Blocking",
+  "mustMention": [["ToolShareBlazorModule"], ["Migrat"]],
+  "edits": [
+    { "file": "src/ToolShare.Blazor/ToolShareBlazorModule.cs", "find": "        var app = context.GetApplicationBuilder();\n", "replace": "        var app = context.GetApplicationBuilder();\n\n        // Keep the schema current on every start.\n        context.ServiceProvider.GetRequiredService<ToolShareDbContext>().Database.Migrate();\n" }
+  ]
+}

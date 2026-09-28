@@ -1,0 +1,7 @@
+{
+  "description": "Loan.IsOverdueAsOf treats the planned return date itself as overdue (< became <=)",
+  "project": "test/ToolShare.Lending.Domain.Tests/ToolShare.Lending.Domain.Tests.csproj",
+  "edits": [
+    { "file": "src/ToolShare.Lending.Domain/Loans/Loan.cs", "find": "return ReturnedAt is null && PlannedReturnDate < asOf;", "replace": "return ReturnedAt is null && PlannedReturnDate <= asOf;" }
+  ]
+}

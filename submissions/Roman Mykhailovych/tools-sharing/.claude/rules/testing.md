@@ -84,59 +84,10 @@ It scans `src/` `ProjectReference`s and fails if a project references another mo
 (composition roots) and `ToolShare.EntityFrameworkCore` → module `*.EntityFrameworkCore` only (the
 consolidated `ToolShareDbContext`). It must be green alongside the tests.
 
-### Automated fix loop
-
-`scripts/fix-until-green.ps1` runs `dotnet test <project>` plus the boundary audit and, while either is
-red, hands the failures to a headless `claude -p` agent that fixes one failure per iteration in
-`src/` — until green, `-MaxIterations`, no progress, or a violation (the agent touched `test/` or
-the audit script). Logs go to `green-runs/<timestamp>/run.log`.
-
-```bash
-pwsh scripts/fix-until-green.ps1 -Project test/ToolShare.Lending.Domain.Tests/ToolShare.Lending.Domain.Tests.csproj -MaxIterations 5
-```
-
-`scripts/speckit-gate.ps1` runs that loop on every test project referenced in the active feature's
-`tasks.md` (Domain projects first). It is the mandatory `after_implement` hook in
-`.specify/extensions.yml` (`speckit.green.gate` → `/speckit-green-gate`), so every `/speckit-implement`
-ends with an exit-code-based gate instead of the implementing agent's self-report. Already green =
-no agent call, $0. `-NoFix` = check only. Exit 5 = Docker not running (no agent is invoked for
-environment failures).
-
-### What happens under the hood of an integration run
-
-1. xUnit creates the module's **collection fixture** (`<Module>ApplicationTestFixture`, wired via
-   `[CollectionDefinition]` in `<Module>ApplicationTestCollection.cs`). Every test class in the
-   assembly carries the same `[Collection(...)]`, so **tests within one assembly run sequentially**,
-   while `dotnet test` runs different assemblies in parallel — each with its own container.
-2. The fixture starts `PostgreSqlContainerFixture` (`postgres:16-alpine`, `max_connections=300`).
-3. `EnsureTemplateMigratedAsync` migrates the template database `toolshare_template` **once per
-   assembly**: `ToolShareDbContext.Database.MigrateAsync()` (consolidated migrations for all
-   schemas), then a throwaway ABP application `<Module>AuthorizationSeedModule` runs the same
-   `IDataSeeder` pipeline as `ToolShare.DbMigrator` (admin, roles, permissions, a Member for admin),
-   plus `<Module>TestDataSeedContributor` (Member rows for the fixed test principals).
-   Then `NpgsqlConnection.ClearAllPools()`, because `CREATE DATABASE ... TEMPLATE` fails while any
-   connection to the template is still open.
-4. For **every test method** (xUnit creates a new class instance → `AbpIntegratedTest` boots a new
-   ABP application), `<Module>ApplicationTestModule.ConfigureServices` calls `CreateDatabaseAsync()`
-   — a new `test_<guid>` database is cloned from the template and every module `DbContext`
-   (`AbpDbContextOptions`) is pointed at it. So **each test gets its own clean database**: no
-   cleanup is needed and test order doesn't matter.
-5. Module test modules **deliberately do not** depend on `ToolShareTestBaseModule` and do not call
-   `AddAlwaysAllowAuthorization()` — permissions and `MembershipMethodInvocationAuthorizationService`
-   (the enrolment gate) are enforced for real.
-
-`ToolShare.EntityFrameworkCore.Tests` is the exception: one migrated database for the whole
-collection with no cloning, so tests there must be read-only.
-
-### Common failures
-
-- `DockerUnavailableException` / failure in the fixture's `InitializeAsync` → Docker Desktop isn't running.
-- `source database "toolshare_template" is being accessed by other users` → something still holds a
-  connection to the template after migration; never open connections to `TemplateConnectionString`
-  outside `EnsureTemplateMigratedAsync`.
-- `too many clients already` → a test isn't releasing connections/`DbContext`s; the limit is already 300.
-- The enrolment gate rejects a call (`AbpAuthorizationException`) → the principal has no Active
-  `Member` row: use a fixed id from `<Module>TestPrincipals`, not `Guid.NewGuid()`.
+Every test gets its own database cloned from a migrated template, tests within one assembly run
+sequentially, the enrolment gate is enforced for real, and `ToolShare.EntityFrameworkCore.Tests`
+shares one database (read-only tests). Fixture internals, common fixture failures, the fix loop
+and the Spec Kit gate: `test/README.md`. Evals of the agentic tooling: `evals/README.md`.
 
 ## Writing new tests
 
@@ -217,25 +168,9 @@ collection with no cloning, so tests there must be read-only.
 
 ## New test projects for a new module
 
-Copy the structure of an existing one (the most complete example is
-`ToolShare.Lending.Application.Tests`):
-
-- **Domain.Tests csproj**: references only `src/ToolShare.<Module>.Domain`; packages xunit,
-  Shouldly, NSubstitute, `Microsoft.NET.Test.Sdk`, `xunit.runner.visualstudio`; `IsPackable=false`;
-  `RootNamespace=ToolShare.<Module>`; `<Import Project="..\..\common.props" />`.
-- **Application.Tests csproj**: its own `Application` + `EntityFrameworkCore`, the
-  Application/EntityFrameworkCore projects of modules it composes with (Membership is mandatory
-  because of the enrolment gate), host `ToolShare.Application` + `ToolShare.EntityFrameworkCore`,
-  `ToolShare.TestBase`; packages `Volo.Abp.TestBase`, `Volo.Abp.Autofac`, `Volo.Abp.Authorization`,
-  `Volo.Abp.EventBus` (10.6.0).
-- Infrastructure files: `<Module>ApplicationTestFixture` (container + template migration/seeding),
-  `<Module>ApplicationTestCollection` (`ICollectionFixture` + a const with the collection name),
-  `<Module>ApplicationTestModule` (`[DependsOn]` modules, `UseNpgsql` on the cloned database for
-  every `DbContext` with its own `MigrationsHistoryTable` in the module schema; **no**
-  `AddAlwaysAllowAuthorization`), `<Module>AuthorizationSeedModule`, `<Module>ApplicationTestBase`,
-  `<Module>AuthorizationTestBase`, `<Module>TestPrincipals` (unique fixed `Guid`s),
-  `<Module>TestDataSeedContributor`.
-- Add both projects to `/test/` in `ToolShare.slnx` and verify with `dotnet test ToolShare.slnx`.
+Copy the structure of `ToolShare.Lending.Application.Tests`; the checklist of csproj references
+and infrastructure files is in `test/README.md`. Add both projects to `/test/` in
+`ToolShare.slnx`.
 
 ## Forbidden
 

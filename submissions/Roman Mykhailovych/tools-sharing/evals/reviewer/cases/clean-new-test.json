@@ -1,0 +1,8 @@
+{
+  "description": "CLEAN: a correct new domain unit test for existing behavior",
+  "expect": "Clean",
+  "mustMention": [],
+  "edits": [
+    { "file": "test/ToolShare.Lending.Domain.Tests/Loans/LoanLifecycleTests.cs", "find": "    [Fact]\n    public void MarkOverdue_sets_the_flag_while_still_open()", "replace": "    [Fact]\n    public void IsWorsened_is_false_while_the_loan_is_still_open()\n    {\n        var reservation = CreateActiveReservation();\n        var loan = new Loan(Guid.NewGuid(), reservation, Now, ToolCondition.Good);\n\n        loan.IsWorsened().ShouldBeFalse();\n    }\n\n    [Fact]\n    public void MarkOverdue_sets_the_flag_while_still_open()" }
+  ]
+}

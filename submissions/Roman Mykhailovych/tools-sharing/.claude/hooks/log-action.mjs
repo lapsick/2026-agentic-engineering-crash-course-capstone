@@ -5,6 +5,8 @@
 //   PostToolUse        -> { ..., exit: 0, ms }                                                  = "agent did"
 //   PostToolUseFailure -> { ..., exit: N | "error" | "interrupted", ms }                        = "agent tried, it failed"
 // A PreToolUse line without a matching Post line (same id) = proposed but never executed (blocked or denied).
+// Only tools with side effects are logged (the `matcher` in .claude/settings.json) — read-only
+// Read/Grep/Glob calls would just add two node process starts each.
 // The hook never blocks the agent: any error -> exit 0 silently.
 import { appendFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";

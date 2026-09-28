@@ -1,0 +1,8 @@
+{
+  "description": "Return time taken from DateTime.Now instead of the injected IClock (convention; Important)",
+  "expect": "Important",
+  "mustMention": [["LoanAppService"], ["DateTime.Now"]],
+  "edits": [
+    { "file": "src/ToolShare.Lending.Application/Loans/LoanAppService.cs", "find": "var at = Clock.Now;", "replace": "var at = DateTime.Now;" }
+  ]
+}

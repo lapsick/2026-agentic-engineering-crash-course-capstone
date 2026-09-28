@@ -1,0 +1,8 @@
+{
+  "description": "Return endpoint opened to anonymous callers (permission + membership gate bypass)",
+  "expect": "Blocking",
+  "mustMention": [["LoanAppService"], ["AllowAnonymous"]],
+  "edits": [
+    { "file": "src/ToolShare.Lending.Application/Loans/LoanAppService.cs", "find": "    [Authorize(LendingPermissions.Loans.Return)]", "replace": "    [AllowAnonymous]" }
+  ]
+}

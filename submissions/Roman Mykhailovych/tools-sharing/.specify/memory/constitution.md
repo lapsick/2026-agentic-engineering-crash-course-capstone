@@ -3,7 +3,7 @@ Sync Impact Report
 ==================
 Version change: 1.0.0 → 2.0.0
 Bump rationale: MAJOR — Principle I (NON-NEGOTIABLE) redefines the mandated
-stack from .NET 9 / ABP 9.3.x to .NET 10 / ABP 10.5.x, at the explicit
+stack from .NET 9 / ABP 9.3.x to .NET 10 / ABP 10.6.x, at the explicit
 direction of the project owner during planning of 002-catalog-foundation.
 ABP 10.x is the actively developed line; .NET 9 was the trailing release.
 Adopting the new target before any production code exists avoids a costly
@@ -43,7 +43,7 @@ supplied as 2026-07-27.
 ## Core Principles
 
 ### I. Fixed Stack (NON-NEGOTIABLE)
-The system is built exclusively on .NET 10, ABP Framework 10.5.x (free/open-source),
+The system is built exclusively on .NET 10, ABP Framework 10.6.x (free/open-source),
 Blazor Web App in InteractiveServer mode, and PostgreSQL 16 via EF Core.
 Only free ABP modules are permitted; ABP Commercial modules are forbidden.
 Replacing any of these components, or introducing an alternative (a different
@@ -126,4 +126,4 @@ projects, new coupling, new infrastructure) MUST be justified against Principles
 II and III before adoption; when in doubt, prefer the simpler option that keeps
 module boundaries intact.
 
-**Version**: 2.0.0 | **Ratified**: 2026-07-27 | **Last Amended**: 2026-07-28
+**Version**: 2.0.0 | **Ratified**: 2026-09-28 | **Last Amended**: 2026-09-28

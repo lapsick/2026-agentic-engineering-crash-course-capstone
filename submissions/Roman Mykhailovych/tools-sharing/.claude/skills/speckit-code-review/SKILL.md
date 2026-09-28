@@ -34,7 +34,9 @@ tests — the green gate (`/speckit-green-gate`) already ran them exactly once.
      if the gate **failed**, stop here and report `Review skipped — the gate failed; fix the
      tests/boundaries first`. Reviewing red code wastes the review.
    - Invoked standalone with no gate verdict in this session: run
-     `pwsh scripts/speckit-gate.ps1 -NoFix` once (check only) and apply the same rule.
+     `pwsh scripts/speckit-gate.ps1 -NoFix -ReuseVerdict` once and apply the same rule. It returns
+     the saved verdict instantly when the working tree hasn't changed since the last gate run, and
+     runs a check-only gate otherwise.
    - Reviewing a non-feature scope (scripts, config): gate verdict is `n/a`.
 
 3. **Run the reviewer as a subagent** — never review in this (implementing) context:

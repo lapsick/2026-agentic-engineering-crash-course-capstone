@@ -269,3 +269,6 @@ src/ToolShare.DbMigrator/Logs/*
 
 # ABP Studio
 **/.abpstudio/
+# Agent run artifacts — local only (summaries: evals/results/*.md, reviews/)
+green-runs/
+evals/results/*/

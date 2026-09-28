@@ -16,12 +16,14 @@ $ARGUMENTS
 ## Purpose
 
 `/speckit-implement` validates its own work in the same session. This gate replaces that
-self-assessment with an independent check: `scripts/speckit-gate.ps1` runs
-`scripts/fix-until-green.ps1` on each test project referenced in the feature's `tasks.md`. A project
-passes only when `dotnet test` exits 0 **and** `scripts/check-module-boundaries.ps1`
-(Constitution II) exits 0. If something is red, the loop hands the failures to a headless
-`claude -p` agent that may fix `src/` only (one failure per iteration, never `test/` or the audit
-script), up to the iteration limit. When everything is already green no agent is invoked.
+self-assessment with an independent check over each test project referenced in the feature's
+`tasks.md` (never the browser E2E suite — that runs once at the very end via `/speckit-e2e-check`). `scripts/speckit-gate.ps1`
+builds the solution once, runs `scripts/check-module-boundaries.ps1` (Constitution II) once, and
+runs the test projects in parallel. Only the red projects go to `scripts/fix-until-green.ps1`,
+where the headless `toolshare-fixer` agent (`.claude/agents/`) may fix `src/` only (never `test/`
+or the audit script), up to the iteration limit; then everything is re-checked once. When
+everything is already green no agent is invoked. The verdict is saved to
+`green-runs/last-gate.json` with a working-tree fingerprint, so `/speckit-code-review` can reuse it.
 
 ## Steps
 
@@ -35,7 +37,8 @@ script), up to the iteration limit. When everything is already green no agent is
    each loop iteration re-runs the tests), so use a long timeout or run it in the background and
    wait for it to finish. Docker must be running.
 
-2. Read the result from the exit code and the final `Gate PASS|FAIL` line. Each project's loop
+2. Read the result from the exit code and the final `Gate PASS|FAIL` line. The check phases print
+   one `PASS|FAIL <project>` line each (logs under `green-runs/<timestamp>-gate/`); each fix loop
    prints a `Status:` line and a `Log:` path (`green-runs/<timestamp>/run.log`).
 
 3. Report to the user:

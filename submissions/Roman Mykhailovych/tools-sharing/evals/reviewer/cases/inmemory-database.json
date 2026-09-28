@@ -1,0 +1,8 @@
+{
+  "description": "Lending integration tests switched to the EF Core InMemory provider (Constitution V: real PostgreSQL only)",
+  "expect": "Blocking",
+  "mustMention": [["LendingApplicationTestModule"], ["InMemory"]],
+  "edits": [
+    { "file": "test/ToolShare.Lending.Application.Tests/LendingApplicationTestModule.cs", "find": "context.DbContextOptions.UseNpgsql(connectionString, o =>\n                    o.MigrationsHistoryTable(\"__EFMigrationsHistory\", LendingDbProperties.DbSchema));", "replace": "context.DbContextOptions.UseInMemoryDatabase(\"lending-tests\");" }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "description": "Standing history row gets a method that rewrites its rating (Constitution IV: append-only history)",
+  "expect": "Blocking",
+  "mustMention": [["MemberStandingChange"], ["append"]],
+  "edits": [
+    { "file": "src/ToolShare.Membership.Domain/Members/MemberStandingChange.cs", "find": "    protected MemberStandingChange()\n    {\n    }", "replace": "    /// <summary>Fixes a mistyped rating on an existing entry.</summary>\n    public void CorrectResultingRating(int resultingRating)\n    {\n        ResultingRating = resultingRating;\n    }\n\n    protected MemberStandingChange()\n    {\n    }" }
+  ]
+}

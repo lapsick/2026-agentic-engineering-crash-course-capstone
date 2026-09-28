@@ -1,0 +1,9 @@
+{
+  "description": "Three independent seeded bugs in Lending domain code at once (zero cost, IsWorsened, IsOverdueAsOf) — measures fixing several failures in one loop iteration",
+  "project": "test/ToolShare.Lending.Domain.Tests/ToolShare.Lending.Domain.Tests.csproj",
+  "edits": [
+    { "file": "src/ToolShare.Lending.Domain/Maintenance/MaintenanceRequest.cs", "find": "if (cost is null || cost < 0)", "replace": "if (cost is null || cost <= 0)" },
+    { "file": "src/ToolShare.Lending.Domain/Loans/Loan.cs", "find": "ReturnedCondition.Value > ConditionAtCheckout;", "replace": "ReturnedCondition.Value >= ConditionAtCheckout;" },
+    { "file": "src/ToolShare.Lending.Domain/Loans/Loan.cs", "find": "return ReturnedAt is null && PlannedReturnDate < asOf;", "replace": "return ReturnedAt is null && PlannedReturnDate <= asOf;" }
+  ]
+}

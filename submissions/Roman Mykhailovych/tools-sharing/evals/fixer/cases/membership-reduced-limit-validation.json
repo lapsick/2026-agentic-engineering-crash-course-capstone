@@ -1,0 +1,7 @@
+{
+  "description": "CommunityRules rejects a reduced limit equal to the normal limit (> became >=)",
+  "project": "test/ToolShare.Membership.Domain.Tests/ToolShare.Membership.Domain.Tests.csproj",
+  "edits": [
+    { "file": "src/ToolShare.Membership.Domain/CommunityRules/CommunityRules.cs", "find": "reducedConcurrentLoanLimit > concurrentLoanLimit", "replace": "reducedConcurrentLoanLimit >= concurrentLoanLimit" }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "description": "A domain test is silenced with Skip (Constitution V: no skipped tests)",
+  "expect": "Blocking",
+  "mustMention": [["LoanLifecycleTests"], ["Skip"]],
+  "edits": [
+    { "file": "test/ToolShare.Lending.Domain.Tests/Loans/LoanLifecycleTests.cs", "find": "    [Fact]\n    public void Return_is_permitted_only_once()", "replace": "    [Fact(Skip = \"Flaky on CI, re-enable later\")]\n    public void Return_is_permitted_only_once()" }
+  ]
+}
