@@ -1,9 +1,11 @@
 using System.Threading.Tasks;
+using ToolShare.Membership.Authorization;
 using ToolShare.Membership.Members;
 using ToolShare.Notifications.RealTime;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.EventBus;
 using Volo.Abp.Guids;
+using Volo.Abp.Security.Claims;
 using Volo.Abp.Timing;
 using Volo.Abp.Uow;
 
@@ -24,6 +26,7 @@ public class StandingChangeNotificationGenerator : ILocalEventHandler<MemberStan
     private readonly IUnitOfWorkManager _unitOfWorkManager;
     private readonly IGuidGenerator _guidGenerator;
     private readonly IClock _clock;
+    private readonly ICurrentPrincipalAccessor _currentPrincipalAccessor;
 
     public StandingChangeNotificationGenerator(
         INotificationRepository notificationRepository,
@@ -32,8 +35,10 @@ public class StandingChangeNotificationGenerator : ILocalEventHandler<MemberStan
         IMemberNotificationBroadcaster broadcaster,
         IUnitOfWorkManager unitOfWorkManager,
         IGuidGenerator guidGenerator,
-        IClock clock)
+        IClock clock,
+        ICurrentPrincipalAccessor currentPrincipalAccessor)
     {
+        _currentPrincipalAccessor = currentPrincipalAccessor;
         _notificationRepository = notificationRepository;
         _memberStandingAppService = memberStandingAppService;
         _emailDispatcher = emailDispatcher;
@@ -61,7 +66,17 @@ public class StandingChangeNotificationGenerator : ILocalEventHandler<MemberStan
             return;
         }
 
-        var standing = await _memberStandingAppService.GetAsync(eventData.MemberId);
+        // Standing changes are raised by other people's actions — seeding in
+        // ToolShare.DbMigrator (no principal at all), an administrator acting
+        // on this member, or a Lending worker reporting an outcome. Resolving
+        // the recipient's contact details is system work, so it runs as the
+        // system principal the enrolment gate exempts; as the triggering
+        // caller it was refused, which crashed DbMigrator's seeding.
+        MemberStandingDto standing;
+        using (_currentPrincipalAccessor.Change(SystemPrincipal.Build()))
+        {
+            standing = await _memberStandingAppService.GetAsync(eventData.MemberId);
+        }
         var displayText = BuildDisplayText(kind.Value, eventData);
         var email = string.IsNullOrWhiteSpace(standing.Email) ? null : standing.Email;
 

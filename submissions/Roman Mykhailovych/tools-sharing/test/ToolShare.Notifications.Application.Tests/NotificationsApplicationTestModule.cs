@@ -54,8 +54,15 @@ public class NotificationsApplicationTestModule : AbpModule
         // for callers going through this interface, without touching
         // Membership's own real invariant (every enrolled member has an
         // email) or its production registration.
+        //
+        // The inner service is resolved from the container (ABP registers the
+        // class itself, with its interceptors), not built with
+        // ActivatorUtilities: a bare instance skipped authorization and the
+        // enrolment gate entirely, which hid a production bug — a generator
+        // calling this service from an anonymous context (DbMigrator seeding)
+        // was refused in the real app but passed here (GeneratorsRunAsSystemTests).
         context.Services.Replace(ServiceDescriptor.Transient<IMemberStandingAppService>(sp =>
-            new EmailMaskingMemberStandingAppService(ActivatorUtilities.CreateInstance<MemberStandingAppService>(sp))));
+            new EmailMaskingMemberStandingAppService(sp.GetRequiredService<MemberStandingAppService>())));
     }
 
     private static void ConfigurePostgreSql(IServiceCollection services)

@@ -1,11 +1,13 @@
 using System.Threading.Tasks;
 using ToolShare.Catalog.ToolInstances;
 using ToolShare.Lending.Loans;
+using ToolShare.Membership.Authorization;
 using ToolShare.Membership.Members;
 using ToolShare.Notifications.RealTime;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.EventBus;
 using Volo.Abp.Guids;
+using Volo.Abp.Security.Claims;
 using Volo.Abp.Timing;
 using Volo.Abp.Uow;
 
@@ -27,6 +29,7 @@ public class LoanNotificationGenerator : ILocalEventHandler<LendingNotificationD
     private readonly IUnitOfWorkManager _unitOfWorkManager;
     private readonly IGuidGenerator _guidGenerator;
     private readonly IClock _clock;
+    private readonly ICurrentPrincipalAccessor _currentPrincipalAccessor;
 
     public LoanNotificationGenerator(
         INotificationRepository notificationRepository,
@@ -36,8 +39,10 @@ public class LoanNotificationGenerator : ILocalEventHandler<LendingNotificationD
         IMemberNotificationBroadcaster broadcaster,
         IUnitOfWorkManager unitOfWorkManager,
         IGuidGenerator guidGenerator,
-        IClock clock)
+        IClock clock,
+        ICurrentPrincipalAccessor currentPrincipalAccessor)
     {
+        _currentPrincipalAccessor = currentPrincipalAccessor;
         _notificationRepository = notificationRepository;
         _toolInstanceLookupAppService = toolInstanceLookupAppService;
         _memberStandingAppService = memberStandingAppService;
@@ -64,8 +69,17 @@ public class LoanNotificationGenerator : ILocalEventHandler<LendingNotificationD
             return;
         }
 
-        var toolInstance = await _toolInstanceLookupAppService.FindAsync(eventData.ToolInstanceId);
-        var standing = await _memberStandingAppService.GetAsync(eventData.MemberId);
+        // Resolving the recipient's standing and the tool is system work done
+        // on the member's behalf — not an action of whoever raised the event —
+        // so it runs as the system principal the enrolment gate exempts, like
+        // Lending's background workers do (see StandingChangeNotificationGenerator).
+        ToolInstanceLookupDto? toolInstance;
+        MemberStandingDto standing;
+        using (_currentPrincipalAccessor.Change(SystemPrincipal.Build()))
+        {
+            toolInstance = await _toolInstanceLookupAppService.FindAsync(eventData.ToolInstanceId);
+            standing = await _memberStandingAppService.GetAsync(eventData.MemberId);
+        }
 
         var displayText = BuildDisplayText(kind.Value, toolInstance?.ToolName, eventData.PlannedReturnDate);
         var email = string.IsNullOrWhiteSpace(standing.Email) ? null : standing.Email;

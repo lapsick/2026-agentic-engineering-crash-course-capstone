@@ -106,7 +106,10 @@ public abstract class E2ETestBase : IAsyncLifetime
                 await expected.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 1_000 });
                 return;
             }
-            catch (PlaywrightException)
+            // Playwright reports an expired wait as System.TimeoutException, which
+            // is not a PlaywrightException — catching only the latter made this
+            // loop give up after the first lost click instead of retrying.
+            catch (Exception exception) when (exception is TimeoutException or PlaywrightException)
             {
                 // Circuit not interactive yet — retry.
             }
