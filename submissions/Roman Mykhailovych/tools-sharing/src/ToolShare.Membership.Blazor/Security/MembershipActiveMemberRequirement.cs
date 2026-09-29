@@ -10,6 +10,15 @@ namespace ToolShare.Membership.Blazor.Security;
 
 public class MembershipActiveMemberRequirement : IAuthorizationRequirement
 {
+    /// <summary>
+    /// <see cref="HttpContext.Items"/> key the handler sets to <c>true</c> when it
+    /// denies a request (authenticated but not an active member), so
+    /// <c>NotEnrolledRedirectAuthorizationMiddlewareResultHandler</c> (host level —
+    /// ToolShare.Blazor) can tell "denied by this specific requirement" apart from
+    /// any other authorization failure (e.g. a real permission-based policy) and
+    /// redirect to the explanatory page instead of the generic AccessDenied page.
+    /// </summary>
+    public const string DeniedByEnrolmentGateItemKey = "ToolShare.Membership.DeniedByEnrolmentGate";
 }
 
 /// <summary>
@@ -42,8 +51,11 @@ public class MembershipActiveMemberRequirementHandler : AuthorizationHandler<Mem
         "/_content",
         "/_vs",
         "/Abp",
-        "/Membership/NotEnrolled"
+        NotEnrolledPagePath
     };
+
+    /// <summary>The explanatory page's actual route (<c>NotEnrolled.razor</c>'s <c>@page</c> directive) — also the redirect target used by the host's result handler.</summary>
+    public const string NotEnrolledPagePath = "/membership/not-enrolled";
 
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IMemberStandingProvider _memberStandingProvider;
@@ -83,10 +95,17 @@ public class MembershipActiveMemberRequirementHandler : AuthorizationHandler<Mem
         if (standing is { IsActive: true })
         {
             context.Succeed(requirement);
+            return;
         }
 
         // Otherwise: neither Succeed nor Fail — leaves the requirement
         // unsatisfied, which denies the request the same way the existing
-        // handler does for an unrecognized anonymous path.
+        // handler does for an unrecognized anonymous path. Flag it so the
+        // host's result handler can redirect to the explanatory page instead
+        // of the generic AccessDenied page.
+        if (_httpContextAccessor.HttpContext is { } httpContext)
+        {
+            httpContext.Items[MembershipActiveMemberRequirement.DeniedByEnrolmentGateItemKey] = true;
+        }
     }
 }

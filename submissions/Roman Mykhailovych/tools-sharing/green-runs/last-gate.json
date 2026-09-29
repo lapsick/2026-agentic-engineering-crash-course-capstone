@@ -1,0 +1,9 @@
+{
+  "feature": "008-out-of-band-maintenance",
+  "tree": "f8efca3e5e4691a254032e1dfec9e1c10cfa96bf",
+  "verdict": "PASS",
+  "exit": 0,
+  "detail": "ToolShare.Catalog.Domain.Tests, ToolShare.Lending.Domain.Tests, ToolShare.Catalog.Application.Tests, ToolShare.Lending.Application.Tests",
+  "at": "2026-09-28T19:39:56",
+  "log": "green-runs/20260928-193819-gate"
+}

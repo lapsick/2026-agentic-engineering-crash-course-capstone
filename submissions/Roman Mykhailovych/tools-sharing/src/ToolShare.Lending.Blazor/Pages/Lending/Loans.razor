@@ -1,16 +1,40 @@
 @page "/lending/loans"
 @attribute [Authorize(LendingPermissions.Loans.Default)]
+@using ToolShare.Catalog.ToolInstances
 @using ToolShare.Lending.Permissions
+@using ToolShare.Lending.Reservations
 @inherits LendingComponentBase
 @inject ILoanAppService LoanAppService
+@inject IReservationAppService ReservationAppService
+@inject IToolInstanceLookupAppService ToolInstanceLookupAppService
 
 <MudText Typo="Typo.h4" Class="mb-4">@L["Menu:Lending.Loans"]</MudText>
 
 <AuthorizeView Policy="@LendingPermissions.Loans.Checkout" Context="checkoutAuthState">
     <MudPaper Class="pa-4 mb-4">
         <MudText Typo="Typo.h6" Class="mb-2">Check out a reservation</MudText>
-        <MudTextField T="string" Label="Reservation id" @bind-Value="_checkOutReservationId" />
-        <MudButton Class="mt-2" Color="Color.Primary" Variant="Variant.Filled" OnClick="CheckOutAsync">Check out</MudButton>
+        <MudTextField T="string" Label="Serial number" @bind-Value="_checkOutSerialNumber" />
+        <MudButton Class="mt-2" OnClick="FindReservationsAsync">Find reservations</MudButton>
+
+        @if (_instanceReservations is not null)
+        {
+            @if (_instanceReservations.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info" Class="mt-2">No active reservations on this instance.</MudAlert>
+            }
+            else
+            {
+                <MudSelect T="Guid?" Label="Reservation" @bind-Value="_selectedReservationId" Class="mt-2">
+                    @foreach (var reservation in _instanceReservations)
+                    {
+                        <MudSelectItem T="Guid?" Value="reservation.Id">
+                            @reservation.StartDate – @reservation.EndDate (member @reservation.MemberId)
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+                <MudButton Class="mt-2" Color="Color.Primary" Variant="Variant.Filled" OnClick="CheckOutAsync" Disabled="_selectedReservationId is null">Check out</MudButton>
+            }
+        }
     </MudPaper>
 </AuthorizeView>
 
@@ -67,7 +91,9 @@
 @code {
     private MudTable<LoanDto> _table = default!;
     private bool _onlyOverdue;
-    private string _checkOutReservationId = string.Empty;
+    private string _checkOutSerialNumber = string.Empty;
+    private List<ReservationDto>? _instanceReservations;
+    private Guid? _selectedReservationId;
 
     private bool _returnDialogOpen;
     private Guid _targetLoanId;
@@ -92,11 +118,44 @@
         await _table.ReloadServerData();
     }
 
+    private async Task FindReservationsAsync()
+    {
+        _selectedReservationId = null;
+        _instanceReservations = null;
+
+        if (string.IsNullOrWhiteSpace(_checkOutSerialNumber))
+        {
+            await Message.Error("Enter a serial number.");
+            return;
+        }
+
+        var instances = await ToolInstanceLookupAppService.GetListAsync(new ToolInstanceLookupFilterDto
+        {
+            SerialNumber = _checkOutSerialNumber,
+            IncludeRetired = true,
+            MaxResultCount = 2
+        });
+
+        if (instances.Items.Count == 0)
+        {
+            await Message.Error("No tool instance found with that serial number.");
+            return;
+        }
+
+        if (instances.Items.Count > 1)
+        {
+            await Message.Error("Multiple instances match — enter the full serial number.");
+            return;
+        }
+
+        var result = await ReservationAppService.GetListForInstanceAsync(instances.Items[0].Id);
+        _instanceReservations = result.Items.Where(r => r.Status == ReservationStatus.Active).ToList();
+    }
+
     private async Task CheckOutAsync()
     {
-        if (!Guid.TryParse(_checkOutReservationId, out var reservationId))
+        if (_selectedReservationId is not { } reservationId)
         {
-            await Message.Error("Enter a valid reservation id.");
             return;
         }
 
@@ -104,7 +163,9 @@
 
         if (ok)
         {
-            _checkOutReservationId = string.Empty;
+            _checkOutSerialNumber = string.Empty;
+            _instanceReservations = null;
+            _selectedReservationId = null;
             await _table.ReloadServerData();
         }
     }

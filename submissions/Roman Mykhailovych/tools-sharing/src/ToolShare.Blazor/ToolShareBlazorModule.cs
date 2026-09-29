@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Hosting;
@@ -189,6 +190,7 @@ public class ToolShareBlazorModule : AbpModule
     {
         context.Services.AddHttpContextAccessor();
         context.Services.AddTransient<IAuthorizationHandler, RequireAuthenticationExceptKnownAnonymousPathsHandler>();
+        context.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, NotEnrolledRedirectAuthorizationMiddlewareResultHandler>();
 
         Configure<AuthorizationOptions>(options =>
         {

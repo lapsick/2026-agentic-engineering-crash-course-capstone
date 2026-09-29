@@ -1,0 +1,10 @@
+{
+  "feature": "008-out-of-band-maintenance",
+  "verdict": "PASS",
+  "exit": 0,
+  "summary": "Passed!  - Failed:     0, Passed:     3, Skipped:     0, Total:     3, Duration: 9 s - ToolShare.E2E.Tests.dll (net10.0)",
+  "failed": [],
+  "traces": [],
+  "at": "2026-09-28T19:40:41",
+  "log": "green-runs/20260928-193956-e2e"
+}
