@@ -5,6 +5,7 @@ services:
     environment:
       POSTGRES_DB: toolshare
       POSTGRES_USER: toolshare
+      # Value comes from the git-ignored .env (copy .env.example).
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
