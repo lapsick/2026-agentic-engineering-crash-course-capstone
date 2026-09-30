@@ -15,7 +15,7 @@ This is a layered startup solution based on [Domain Driven Design (DDD)](https:/
 
 The solution comes with a default configuration that works out of the box. However, you may consider to change the following configuration before running your solution:
 
-`src/ToolShare.Blazor/appsettings.json` and `src/ToolShare.DbMigrator/appsettings.json` (plus the empty `appsettings.secrets.json`/`appsettings.Development.json` placeholders next to them) ship committed with dev-only defaults — the Postgres password `$POSTGRES_PASSWORD (from .env)` (also hardcoded in `docker-compose.yml`) and ABP's own stock `StringEncryption:DefaultPassPhrase`. Both are fine for local development but MUST be changed before any real deployment; production secrets management is out of scope for this feature (see `specs/002-catalog-foundation/spec.md`'s Assumptions).
+`src/ToolShare.Blazor/appsettings.json` and `src/ToolShare.DbMigrator/appsettings.json` (plus the empty `appsettings.secrets.json`/`appsettings.Development.json` placeholders next to them) ship committed with dev-only defaults — a Postgres connection string **without a password** (supply it via the `PGPASSWORD` environment variable, see [Start PostgreSQL](#start-postgresql)) and ABP's own stock `StringEncryption:DefaultPassPhrase`. The Postgres password itself is never committed: `docker-compose.yml` reads it from a git-ignored `.env` (copy `.env.example`). These defaults are fine for local development but MUST be changed before any real deployment; production secrets management is out of scope for this feature (see `specs/002-catalog-foundation/spec.md`'s Assumptions).
 
 
 ### Before running the application
@@ -53,12 +53,15 @@ abp install-libs
 This solution targets PostgreSQL 16. The easiest way to get one running locally is via Docker Compose:
 
 ```bash
+cp .env.example .env   # then set POSTGRES_PASSWORD in .env to a password of your choice
 docker compose up -d
 ```
 
-This starts a single `postgres` service (`postgres:16-alpine`) on `localhost:5432` with a named volume for persistence, matching the connection string already in `src/ToolShare.Blazor/appsettings.json` and `src/ToolShare.DbMigrator/appsettings.json` (database `toolshare`, user `toolshare`, password `$POSTGRES_PASSWORD (from .env)` — a dev-only default, not for production). Run `docker compose down` to stop it (add `-v` to also drop the volume and start clean).
+This starts a single `postgres` service (`postgres:16-alpine`) on `localhost:5432` with a named volume for persistence, matching the connection string already in `src/ToolShare.Blazor/appsettings.json` and `src/ToolShare.DbMigrator/appsettings.json` (database `toolshare`, user `toolshare`). Run `docker compose down` to stop it (add `-v` to also drop the volume and start clean).
 
-If you'd rather point at a PostgreSQL instance you already have running (a native install, a different container, etc.), just update the `ConnectionStrings:Default` value in those same `appsettings.json` files instead.
+The committed connection strings deliberately contain no password. Npgsql falls back to the standard `PGPASSWORD` environment variable, so set it to the same value as `POSTGRES_PASSWORD` in `.env` in the shell you `dotnet run` from (PowerShell: `$env:PGPASSWORD = "..."`; bash: `export PGPASSWORD=...`). Alternatively, override the whole connection string with the `ConnectionStrings__Default` environment variable.
+
+If you'd rather point at a PostgreSQL instance you already have running (a native install, a different container, etc.), set `ConnectionStrings__Default` (or `PGPASSWORD`) accordingly — don't put a password into the committed `appsettings.json` files.
 
 #### Create the Database
 
@@ -77,6 +80,7 @@ starter categories) and then `exec`s the Blazor host — migrations are never ap
 app itself (Constitution VI). Reach the app at `http://localhost:8080`.
 
 ```bash
+cp .env.example .env           # once: set POSTGRES_PASSWORD (required - the postgres container will not start without it)
 docker compose up --build -d   # first run, or after a Dockerfile/source change
 docker compose down            # stop (add -v to also drop the postgres/blobs volumes)
 ```
